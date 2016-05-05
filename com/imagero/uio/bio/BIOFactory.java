@@ -37,8 +37,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.logging.Logger;
 
-import com.imagero.java.util.Debug;
 import com.imagero.uio.UIOStreamBuilder;
 import com.imagero.uio.bio.content.DummyContent;
 import com.imagero.uio.bio.content.FileCachedHTTPContent;
@@ -58,110 +58,114 @@ import com.imagero.uio.io.REO_InputStream;
  */
 public class BIOFactory {
 
-    public static AbstractRandomAccessInput create(int chunkSize) {
-	IOController controller = createIOController(chunkSize);
-	AbstractRandomAccessInput out = new BufferedRandomAccessIO(controller);
-	return out;
-    }
+	public static AbstractRandomAccessInput create(int chunkSize) {
+		IOController controller = createIOController(chunkSize);
+		AbstractRandomAccessInput out = new BufferedRandomAccessIO(controller);
+		return out;
+	}
 
-    public static BufferedRandomAccessIO create(OutputStream out) {
-	return create(out, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
-    }
+	public static BufferedRandomAccessIO create(OutputStream out) {
+		return create(out, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
+	}
 
-    public static BufferedRandomAccessIO create(final OutputStream out, int chunkSize) {
-	IOController ctrl = createIOController(chunkSize);
-	BufferedRandomAccessIO bio = new BufferedRandomAccessIO(ctrl) {
-	    public void close() throws IOException {
-		if (controller != null) {
-		    controller.writeTo(out);
+	public static BufferedRandomAccessIO create(final OutputStream out, int chunkSize) {
+		IOController ctrl = createIOController(chunkSize);
+		BufferedRandomAccessIO bio = new BufferedRandomAccessIO(ctrl) {
+			public void close() throws IOException {
+				if (controller != null) {
+					controller.writeTo(out);
+				}
+				super.close();
+			}
+
+			// public void flush() throws IOException {
+			// controller.writeTo(out);
+			// controller.flushBefore(getFilePointer());
+			// }
+		};
+		return bio;
+	}
+
+	public static BufferedRandomAccessIO create(DataOutput out) {
+		return create(out, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
+	}
+
+	public static BufferedRandomAccessIO create(final DataOutput out, int chunkSize) {
+		IOController ctrl = createIOController(chunkSize);
+		BufferedRandomAccessIO bio = new BufferedRandomAccessIO(ctrl) {
+			public void close() throws IOException {
+				controller.writeTo(out);
+				super.close();
+			}
+
+			// public void flush() throws IOException {
+			// controller.writeTo(out);
+			// controller.flushBefore(getFilePointer());
+			// }
+		};
+		return bio;
+	}
+
+	public static IOController createIOController(int chunkSize) {
+		StreamContent bc = new DummyContent();
+		IOController sb = new IOController(chunkSize, bc);
+		return sb;
+	}
+
+	public static IOController createIOController(REO_InputStream in, int chunkSize) {
+		StreamContent bc;
+		bc = new REO_InputStreamContent(in);
+		IOController sb = new IOController(chunkSize, bc);
+		return sb;
+	}
+
+	public static IOController createIOController(InputStream in, File tmp, int chunkSize) {
+		StreamContent bc;
+		if (tmp != null) {
+			try {
+				bc = new FileCachedInputStreamContent(in, tmp);
+			} catch (IOException ex) {
+				Logger.getLogger(BIOFactory.class.getName())
+						.warning("Unable to use file cache, switching to memory cache.");
+				Logger.getLogger(BIOFactory.class.getName()).throwing(BIOFactory.class.getName(), "createIOController",
+						ex);
+				bc = new MemoryCachedInputStreamContent(in, chunkSize);
+			}
+		} else {
+			bc = new MemoryCachedInputStreamContent(in, chunkSize);
 		}
-		super.close();
-	    }
-
-	    // public void flush() throws IOException {
-	    // controller.writeTo(out);
-	    // controller.flushBefore(getFilePointer());
-	    // }
-	};
-	return bio;
-    }
-
-    public static BufferedRandomAccessIO create(DataOutput out) {
-	return create(out, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
-    }
-
-    public static BufferedRandomAccessIO create(final DataOutput out, int chunkSize) {
-	IOController ctrl = createIOController(chunkSize);
-	BufferedRandomAccessIO bio = new BufferedRandomAccessIO(ctrl) {
-	    public void close() throws IOException {
-		controller.writeTo(out);
-		super.close();
-	    }
-
-	    // public void flush() throws IOException {
-	    // controller.writeTo(out);
-	    // controller.flushBefore(getFilePointer());
-	    // }
-	};
-	return bio;
-    }
-
-    public static IOController createIOController(int chunkSize) {
-	StreamContent bc = new DummyContent();
-	IOController sb = new IOController(chunkSize, bc);
-	return sb;
-    }
-
-    public static IOController createIOController(REO_InputStream in, int chunkSize) {
-	StreamContent bc;
-	bc = new REO_InputStreamContent(in);
-	IOController sb = new IOController(chunkSize, bc);
-	return sb;
-    }
-
-    public static IOController createIOController(InputStream in, File tmp, int chunkSize) {
-	StreamContent bc;
-	if (tmp != null) {
-	    try {
-		bc = new FileCachedInputStreamContent(in, tmp);
-	    } catch (IOException ex) {
-		Debug.error("Unable to use file cache, switching to memory cache.");
-		Debug.error(ex);
-		bc = new MemoryCachedInputStreamContent(in, chunkSize);
-	    }
-	} else {
-	    bc = new MemoryCachedInputStreamContent(in, chunkSize);
+		IOController sb = new IOController(chunkSize, bc);
+		return sb;
 	}
-	IOController sb = new IOController(chunkSize, bc);
-	return sb;
-    }
 
-    public static IOController createIOController(URL url) {
-	return createIOController(url, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
-    }
-
-    public static IOController createIOController(URL url, int chunkSize) {
-	return createIOController(url, null, chunkSize);
-    }
-
-    public static IOController createIOController(URL url, File tmp) {
-	return createIOController(url, tmp, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
-    }
-
-    public static IOController createIOController(URL url, File tmp, int chunkSize) {
-	StreamContent bc;
-	if (tmp != null) {
-	    try {
-		bc = new FileCachedHTTPContent(url, tmp);
-	    } catch (IOException ex) {
-		Debug.error("Unable to use file cache, switching to memory cache.");
-		Debug.print(ex);
-		bc = new HTTPContent(url);
-	    }
-	} else {
-	    bc = new HTTPContent(url);
+	public static IOController createIOController(URL url) {
+		return createIOController(url, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
 	}
-	IOController sb = new IOController(chunkSize, bc);
-	return sb;
-    }
+
+	public static IOController createIOController(URL url, int chunkSize) {
+		return createIOController(url, null, chunkSize);
+	}
+
+	public static IOController createIOController(URL url, File tmp) {
+		return createIOController(url, tmp, UIOStreamBuilder.DEFAULT_CHUNK_SIZE);
+	}
+
+	public static IOController createIOController(URL url, File tmp, int chunkSize) {
+		StreamContent bc;
+		if (tmp != null) {
+			try {
+				bc = new FileCachedHTTPContent(url, tmp);
+			} catch (IOException ex) {
+				Logger.getLogger(BIOFactory.class.getName())
+						.warning("Unable to use file cache, switching to memory cache.");
+				Logger.getLogger(BIOFactory.class.getName()).throwing(BIOFactory.class.getName(), "createIOController",
+						ex);
+				bc = new HTTPContent(url);
+			}
+		} else {
+			bc = new HTTPContent(url);
+		}
+		IOController sb = new IOController(chunkSize, bc);
+		return sb;
+	}
 }

@@ -32,108 +32,104 @@
 
 package com.imagero.uio.io;
 
-
-import com.imagero.java.util.Debug;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Andrey Kuznetsov
  */
 public abstract class RLEInputStream extends FilterInputStream {
-    boolean finished;
+	boolean finished;
 
-    public RLEInputStream(InputStream in) {
-        super(in);
-    }
+	public RLEInputStream(InputStream in) {
+		super(in);
+	}
 
-    public int available() throws IOException {
-        if (finished) {
-            return 0;
-        }
-        return 1;
-    }
+	public int available() throws IOException {
+		if (finished) {
+			return 0;
+		}
+		return 1;
+	}
 
-    public void close() throws IOException {
-    }
+	public void close() throws IOException {
+	}
 
-    public boolean markSupported() {
-        return false;
-    }
+	public boolean markSupported() {
+		return false;
+	}
 
-    public synchronized void mark(int readlimit) {
-    }
+	public synchronized void mark(int readlimit) {
+	}
 
-    public synchronized void reset() throws IOException {
-        throw new IOException("mark/reset not supported");
-    }
+	public synchronized void reset() throws IOException {
+		throw new IOException("mark/reset not supported");
+	}
 
-    public int read(byte b[]) throws IOException {
-        return read(b, 0, b.length);
-    }
+	public int read(byte b[]) throws IOException {
+		return read(b, 0, b.length);
+	}
 
-    public int read(byte b[], int off, int len) throws IOException {
-        int i = off;
+	public int read(byte b[], int off, int len) throws IOException {
+		int i = off;
 
-        try {
-            for (; i < off + len; i++) {
-                int a = read();
-                if (a == -1) {
-                    i--;
-                    break;
-                }
-                b[i] = (byte) a;
-            }
-        }
-        catch (EndOfLineException ex) {
-            //ignore
-        }
-        catch(EndOfBitmapException ex) {
-            //ignore
-        }
-        catch(IOException ex) {
-            Debug.print(ex);
-        }
-        return i - off;
-    }
+		try {
+			for (; i < off + len; i++) {
+				int a = read();
+				if (a == -1) {
+					i--;
+					break;
+				}
+				b[i] = (byte) a;
+			}
+		} catch (EndOfLineException ex) {
+			// ignore
+		} catch (EndOfBitmapException ex) {
+			// ignore
+		} catch (IOException ex) {
+			Logger.getLogger(getClass().getName()).log(Level.WARNING, ex.getMessage(), ex);
+		}
+		return i - off;
+	}
 
-    public abstract int read() throws IOException;
+	public abstract int read() throws IOException;
 
-    public static class EndOfLineException extends IOException {
+	public static class EndOfLineException extends IOException {
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = -7769815305217132187L;
 
 		public EndOfLineException() {
-            super("EndOfLineException");
-        }
-    }
+			super("EndOfLineException");
+		}
+	}
 
-    public static class EndOfBitmapException extends IOException {
+	public static class EndOfBitmapException extends IOException {
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = -3885397200907319718L;
 
 		public EndOfBitmapException() {
-            super("EndOfBitmapException");
-        }
-    }
+			super("EndOfBitmapException");
+		}
+	}
 
-    public static class DeltaRecordException extends IOException {
-        /**
+	public static class DeltaRecordException extends IOException {
+		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 2393934786948516882L;
 		public final int dx;
-        public final int dy;
+		public final int dy;
 
-        public DeltaRecordException(int dx, int dy) {
-            this.dx = dx;
-            this.dy = dy;
-        }
-    }
+		public DeltaRecordException(int dx, int dy) {
+			this.dx = dx;
+			this.dy = dy;
+		}
+	}
 }

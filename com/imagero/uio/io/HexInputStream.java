@@ -32,11 +32,11 @@
 
 package com.imagero.uio.io;
 
-import com.imagero.java.util.Debug;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Andrey Kuznetsov
@@ -106,8 +106,7 @@ public class HexInputStream extends FilterInputStream {
             }
         }
         catch (Throwable ex) {
-            Debug.print(ex);
-//            Debug.printErr(ex.getMessage());
+			Logger.getLogger(getClass().getName()).log(Level.WARNING, ex.getMessage(), ex);
         }
         count = k;
         pos = 0;

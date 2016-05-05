@@ -31,11 +31,10 @@
  */
 package com.imagero.uio.ba;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.EOFException;
 
 /**
  * 

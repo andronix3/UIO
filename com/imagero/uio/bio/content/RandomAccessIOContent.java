@@ -31,13 +31,14 @@
  */
 package com.imagero.uio.bio.content;
 
+import java.io.EOFException;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.imagero.uio.RandomAccessIO;
 import com.imagero.uio.RandomAccessInput;
 import com.imagero.uio.io.IOutils;
-import com.imagero.java.util.Debug;
-
-import java.io.IOException;
-import java.io.EOFException;
 
 /**
  * Date: 05.01.2008
@@ -45,52 +46,52 @@ import java.io.EOFException;
  * @author Andrey Kuznetsov
  */
 public class RandomAccessIOContent extends StreamContent {
-    private RandomAccessIO rio;
+	private RandomAccessIO rio;
 
-    public RandomAccessIOContent(RandomAccessIO rio) {
-        this.rio = rio;
-    }
+	public RandomAccessIOContent(RandomAccessIO rio) {
+		this.rio = rio;
+	}
 
-    public int load(long offset, int bpos, byte[] b) throws IOException {
-        long max = rio.length() - offset;
-        int len = (int) Math.min(max, b.length - bpos);
-        if (len > 0) {
-            rio.seek(offset);
-            rio.readFully(b, bpos, len);
-            return len;
-        }
-        throw new EOFException();
-//            return 0;
-    }
+	public int load(long offset, int bpos, byte[] b) throws IOException {
+		long max = rio.length() - offset;
+		int len = (int) Math.min(max, b.length - bpos);
+		if (len > 0) {
+			rio.seek(offset);
+			rio.readFully(b, bpos, len);
+			return len;
+		}
+		throw new EOFException();
+		// return 0;
+	}
 
-    public boolean canReload() {
-        return true;
-    }
+	public boolean canReload() {
+		return true;
+	}
 
-    public void close() {
-        IOutils.closeStream((RandomAccessInput) rio);
-        rio = null;
-    }
+	public void close() {
+		IOutils.closeStream((RandomAccessInput) rio);
+		rio = null;
+	}
 
-    public boolean writable() {
-        return true;
-    }
+	public boolean writable() {
+		return true;
+	}
 
-    public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
-        rio.seek(offset);
-        try {
-            rio.write(buffer, bpos, length);
-        } catch (IndexOutOfBoundsException ex) {
-            Debug.print(ex);
-        }
-    }
+	public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
+		rio.seek(offset);
+		try {
+			rio.write(buffer, bpos, length);
+		} catch (IndexOutOfBoundsException ex) {
+			Logger.getLogger(getClass().getName()).log(Level.WARNING, ex.getMessage(), ex);
+		}
+	}
 
-    public long length() throws IOException {
-        return rio.length();
-    }
+	public long length() throws IOException {
+		return rio.length();
+	}
 
-    protected void finalize() throws Throwable {
-        super.finalize();
-        rio = null;
-    }
+	protected void finalize() throws Throwable {
+		super.finalize();
+		rio = null;
+	}
 }

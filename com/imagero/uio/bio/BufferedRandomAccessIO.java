@@ -31,16 +31,15 @@
  */
 package com.imagero.uio.bio;
 
-import com.imagero.uio.RandomAccessIO;
-import com.imagero.uio.RandomAccessInput;
-import com.imagero.uio.RandomAccessOutput;
-import com.imagero.uio.impl.AbstractRandomAccessIO;
-import com.imagero.java.util.Debug;
-
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+
+import com.imagero.uio.RandomAccessIO;
+import com.imagero.uio.RandomAccessInput;
+import com.imagero.uio.RandomAccessOutput;
+import com.imagero.uio.impl.AbstractRandomAccessIO;
 
 /**
  * BufferedRandomAccessIO - buffered readable and writable stream with random
@@ -50,243 +49,239 @@ import java.io.OutputStream;
  */
 public class BufferedRandomAccessIO extends AbstractRandomAccessIO {
 
-    FixedSizeByteBuffer buffer;
-    BufferIndex bufferIndex;
-    BufferPosition bufferPosition;
-    final IOController controller;
+	FixedSizeByteBuffer buffer;
+	BufferIndex bufferIndex;
+	BufferPosition bufferPosition;
+	final IOController controller;
 
-    StreamPosition streamPosition = new StreamPosition();
-    final long offset;
+	StreamPosition streamPosition = new StreamPosition();
+	final long offset;
 
-    public BufferedRandomAccessIO(IOController controller) {
-	this(controller, 0L);
-    }
-
-    public BufferedRandomAccessIO(IOController controller, long offset) {
-	this(controller, offset, false);
-    }
-
-    public BufferedRandomAccessIO(IOController controller, long offset, boolean child) {
-	if (controller == null) {
-	    throw new NullPointerException("Controller is null");
+	public BufferedRandomAccessIO(IOController controller) {
+		this(controller, 0L);
 	}
-	this.child = child;
-	this.controller = controller;
-	this.controller.streamCount++;
-	this.offset = offset;
-	bufferPosition = new BufferPosition(controller.bufferSize);
-	seek(0);
-    }
 
-    public final void setLength(long newLength) throws IOException {
-	controller.setLength(newLength);
-    }
-
-    public long flushBefore(long pos) {
-	return controller.flushBefore(pos);
-    }
-
-    protected void prepareBufferForReading(BufferIndex index) throws IOException {
-	if (!index.equals(bufferIndex) || buffer == null || buffer.buf == null) {
-	    bufferIndex = index;
-	    buffer = controller.getBuffer(streamPosition.pos, true);
+	public BufferedRandomAccessIO(IOController controller, long offset) {
+		this(controller, offset, false);
 	}
-	bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
-    }
 
-    protected void prepareBufferForWriting(BufferIndex index) throws IOException {
-	if (!index.equals(bufferIndex) || buffer == null || buffer.buf == null) {
-	    bufferIndex = index;
-	    buffer = controller.getBuffer(streamPosition.pos, false);
+	public BufferedRandomAccessIO(IOController controller, long offset, boolean child) {
+		if (controller == null) {
+			throw new NullPointerException("Controller is null");
+		}
+		this.child = child;
+		this.controller = controller;
+		this.controller.streamCount++;
+		this.offset = offset;
+		bufferPosition = new BufferPosition(controller.bufferSize);
+		seek(0);
 	}
-	bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
-	buffer.changed = true;
-    }
 
-    public long getFilePointer() {
-	return streamPosition.pos - offset;
-    }
-
-    public long length() throws IOException {
-	return controller.length() - offset;
-    }
-
-    public void seek(long pos) {
-	if (pos < 0) {
-	    throw new IllegalArgumentException("Negative seek offset");
+	public final void setLength(long newLength) throws IOException {
+		controller.setLength(newLength);
 	}
-	streamPosition.pos = pos + offset;
-	bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
-    }
 
-    public int available() throws IOException {
-	if (buffer != null) {
-	    return buffer.availableForReading(bufferPosition);
+	public long flushBefore(long pos) {
+		return controller.flushBefore(pos);
 	}
-	return 0;
-    }
 
-    public void write(int b) throws IOException {
-	ensureBuffer(false);
-	buffer.write(b, bufferPosition);
-	streamPosition.pos++;
-    }
-
-    public void write(byte b[], int offset, int length) throws IOException {
-	while (length > 0) {
-	    ensureBuffer(false);
-	    int written = buffer.write(b, offset, length, bufferPosition);
-	    length -= written;
-	    offset += written;
-	    streamPosition.pos += written;
+	protected void prepareBufferForReading(BufferIndex index) throws IOException {
+		if (!index.equals(bufferIndex) || buffer == null || buffer.buf == null) {
+			bufferIndex = index;
+			buffer = controller.getBuffer(streamPosition.pos, true);
+		}
+		bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
 	}
-    }
 
-    public void close() throws IOException {
-	if (Debug.DUMP) {
-	    Thread.dumpStack();
+	protected void prepareBufferForWriting(BufferIndex index) throws IOException {
+		if (!index.equals(bufferIndex) || buffer == null || buffer.buf == null) {
+			bufferIndex = index;
+			buffer = controller.getBuffer(streamPosition.pos, false);
+		}
+		bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
+		buffer.changed = true;
 	}
-	flush();
-	if (controller != null) {
-	    if (isChild()) {
-		controller.close();
-//		controller = null;
-	    }
-	    else {
-		controller.closeAll();
-//		controller = null;
-	    }
+
+	public long getFilePointer() {
+		return streamPosition.pos - offset;
 	}
-    }
 
-    /**
-     * write buffer contents to given OutputStream
-     * 
-     * @param out
-     *            OutputStream
-     */
-    public void writeBuffer(OutputStream out) throws IOException {
-	controller.writeTo(out);
-    }
-
-    /**
-     * write buffer contents to DataOutput
-     * 
-     * @param out
-     *            OutputStream
-     */
-    public void writeBuffer(DataOutput out) throws IOException {
-	controller.writeTo(out);
-    }
-
-    private void ensureBuffer(boolean read) throws IOException {
-	BufferIndex index = controller.getBufferIndex(streamPosition.pos);
-	if (read) {
-	    if (buffer == null || buffer.availableForReading(bufferPosition) <= 0 || bufferIndex != index) {
-		prepareBufferForReading(index);
-	    }
-	} else {
-	    if (buffer == null || buffer.availableForWriting(bufferPosition) <= 0 || bufferIndex != index) {
-		prepareBufferForWriting(index);
-	    }
+	public long length() throws IOException {
+		return controller.length() - offset;
 	}
-    }
 
-    public int read() throws IOException {
-	try {
-	    ensureBuffer(true);
-	} catch (IOException ex) {
-	    return -1;
+	public void seek(long pos) {
+		if (pos < 0) {
+			throw new IllegalArgumentException("Negative seek offset");
+		}
+		streamPosition.pos = pos + offset;
+		bufferPosition.pos = (int) ((streamPosition.pos) % controller.bufferSize);
 	}
-	if (buffer != null) {
-	    streamPosition.pos++;
-	    return buffer.read(bufferPosition);
+
+	public int available() throws IOException {
+		if (buffer != null) {
+			return buffer.availableForReading(bufferPosition);
+		}
+		return 0;
 	}
-	return -1;
-    }
 
-    public long skip(long n) throws IOException {
-	ensureBuffer(true);
-	if (buffer == null) {
-	    return 0;
+	public void write(int b) throws IOException {
+		ensureBuffer(false);
+		buffer.write(b, bufferPosition);
+		streamPosition.pos++;
 	}
-	long skipped = buffer.skip(n, bufferPosition);
-	streamPosition.pos += skipped;
-	return skipped;
-    }
 
-    public int read(byte[] b, int offset, int length) throws IOException {
-	ensureBuffer(true);
-	if (buffer == null) {
-	    return 0;
+	public void write(byte b[], int offset, int length) throws IOException {
+		while (length > 0) {
+			ensureBuffer(false);
+			int written = buffer.write(b, offset, length, bufferPosition);
+			length -= written;
+			offset += written;
+			streamPosition.pos += written;
+		}
 	}
-	int rc = buffer.read(b, offset, length, bufferPosition);
-	if (rc > 0) {
-	    streamPosition.pos += rc;
+
+	public void close() throws IOException {
+		flush();
+		if (controller != null) {
+			if (isChild()) {
+				controller.close();
+				// controller = null;
+			} else {
+				controller.closeAll();
+				// controller = null;
+			}
+		}
 	}
-	return rc;
-    }
 
-    public RandomAccessIO createIOChild(long offset, long length, int byteOrder, boolean syncPointer) {
-	BufferedRandomAccessIO io = new BufferedRandomAccessIO(controller, this.offset + offset, true);
-	io.setByteOrder(byteOrder);
-	io.child = true;
-	if (syncPointer) {
-	    io.streamPosition = streamPosition;
+	/**
+	 * write buffer contents to given OutputStream
+	 * 
+	 * @param out
+	 *            OutputStream
+	 */
+	public void writeBuffer(OutputStream out) throws IOException {
+		controller.writeTo(out);
 	}
-	return io;
-    }
 
-    public RandomAccessInput createInputChild(long offset, long length, int byteOrder, boolean syncPointer) {
-	return createIOChild(offset, 0, byteOrder, syncPointer);
-    }
-
-    public InputStream createInputStream(long offset) {
-	return new IOCInputStream(controller, this.offset + offset);
-    }
-
-    public InputStream createInputStream(long offset, long length) {
-	return new IOCInputStream(controller, this.offset + offset, length);
-    }
-
-    public RandomAccessOutput createOutputChild(long offset, int byteOrder, boolean syncPointer) {
-	return createIOChild(offset, 0, byteOrder, syncPointer);
-    }
-
-    public OutputStream createOutputStream(long offset) {
-	return new IOCOutputStream(controller, this.offset + offset);
-    }
-
-    public void flush() throws IOException {
-	if (controller != null) {
-	    controller.sync();
+	/**
+	 * write buffer contents to DataOutput
+	 * 
+	 * @param out
+	 *            OutputStream
+	 */
+	public void writeBuffer(DataOutput out) throws IOException {
+		controller.writeTo(out);
 	}
-    }
 
-    public boolean isBuffered() {
-	return true;
-    }
-
-    public long getChildPosition(InputStream child) {
-	if (child instanceof IOCInputStream) {
-	    IOCInputStream in = (IOCInputStream) child;
-	    return in.getPosition();
+	private void ensureBuffer(boolean read) throws IOException {
+		BufferIndex index = controller.getBufferIndex(streamPosition.pos);
+		if (read) {
+			if (buffer == null || buffer.availableForReading(bufferPosition) <= 0 || bufferIndex != index) {
+				prepareBufferForReading(index);
+			}
+		} else {
+			if (buffer == null || buffer.availableForWriting(bufferPosition) <= 0 || bufferIndex != index) {
+				prepareBufferForWriting(index);
+			}
+		}
 	}
-	return -1;
-    }
 
-    public long getChildOffset(InputStream child) {
-	if (child instanceof IOCInputStream) {
-	    IOCInputStream in = (IOCInputStream) child;
-	    return in.getOffset();
+	public int read() throws IOException {
+		try {
+			ensureBuffer(true);
+		} catch (IOException ex) {
+			return -1;
+		}
+		if (buffer != null) {
+			streamPosition.pos++;
+			return buffer.read(bufferPosition);
+		}
+		return -1;
 	}
-	return -1;
-    }
 
-    public void setChildPosition(InputStream child, long position) {
-	if (child instanceof IOCInputStream) {
-	    IOCInputStream in = (IOCInputStream) child;
-	    in.seek(position);
+	public long skip(long n) throws IOException {
+		ensureBuffer(true);
+		if (buffer == null) {
+			return 0;
+		}
+		long skipped = buffer.skip(n, bufferPosition);
+		streamPosition.pos += skipped;
+		return skipped;
 	}
-    }
+
+	public int read(byte[] b, int offset, int length) throws IOException {
+		ensureBuffer(true);
+		if (buffer == null) {
+			return 0;
+		}
+		int rc = buffer.read(b, offset, length, bufferPosition);
+		if (rc > 0) {
+			streamPosition.pos += rc;
+		}
+		return rc;
+	}
+
+	public RandomAccessIO createIOChild(long offset, long length, int byteOrder, boolean syncPointer) {
+		BufferedRandomAccessIO io = new BufferedRandomAccessIO(controller, this.offset + offset, true);
+		io.setByteOrder(byteOrder);
+		io.child = true;
+		if (syncPointer) {
+			io.streamPosition = streamPosition;
+		}
+		return io;
+	}
+
+	public RandomAccessInput createInputChild(long offset, long length, int byteOrder, boolean syncPointer) {
+		return createIOChild(offset, 0, byteOrder, syncPointer);
+	}
+
+	public InputStream createInputStream(long offset) {
+		return new IOCInputStream(controller, this.offset + offset);
+	}
+
+	public InputStream createInputStream(long offset, long length) {
+		return new IOCInputStream(controller, this.offset + offset, length);
+	}
+
+	public RandomAccessOutput createOutputChild(long offset, int byteOrder, boolean syncPointer) {
+		return createIOChild(offset, 0, byteOrder, syncPointer);
+	}
+
+	public OutputStream createOutputStream(long offset) {
+		return new IOCOutputStream(controller, this.offset + offset);
+	}
+
+	public void flush() throws IOException {
+		if (controller != null) {
+			controller.sync();
+		}
+	}
+
+	public boolean isBuffered() {
+		return true;
+	}
+
+	public long getChildPosition(InputStream child) {
+		if (child instanceof IOCInputStream) {
+			IOCInputStream in = (IOCInputStream) child;
+			return in.getPosition();
+		}
+		return -1;
+	}
+
+	public long getChildOffset(InputStream child) {
+		if (child instanceof IOCInputStream) {
+			IOCInputStream in = (IOCInputStream) child;
+			return in.getOffset();
+		}
+		return -1;
+	}
+
+	public void setChildPosition(InputStream child, long position) {
+		if (child instanceof IOCInputStream) {
+			IOCInputStream in = (IOCInputStream) child;
+			in.seek(position);
+		}
+	}
 }

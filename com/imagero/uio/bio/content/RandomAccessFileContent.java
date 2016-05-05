@@ -31,14 +31,14 @@
  */
 package com.imagero.uio.bio.content;
 
-import com.imagero.uio.impl.RandomAccessFileX;
-import com.imagero.uio.io.IOutils;
-import com.imagero.java.util.Debug;
-
 import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.logging.Logger;
+
+import com.imagero.uio.impl.RandomAccessFileX;
+import com.imagero.uio.io.IOutils;
 
 /**
  * Date: 05.01.2008
@@ -83,14 +83,14 @@ public class RandomAccessFileContent extends StreamContent {
         }
         catch (IOException ex) {
             mode = "r";
-            Debug.print(ex);
+            Logger.getLogger(getClass().getName()).warning(ex.getMessage());
         }
         finally {
             try {
                 raf.seek(0);
             }
             catch (IOException ex) {
-                Debug.print(ex);
+                Logger.getLogger(getClass().getName()).warning(ex.getMessage());
             }
         }
     }
@@ -125,7 +125,7 @@ public class RandomAccessFileContent extends StreamContent {
             raf.write(buffer, bpos, length);
         }
         catch (IndexOutOfBoundsException ex) {
-            Debug.print(ex);
+            Logger.getLogger(getClass().getName()).warning(ex.getMessage());
         }
     }
 

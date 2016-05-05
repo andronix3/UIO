@@ -32,10 +32,9 @@
 
 package com.imagero.uio.io;
 
-import com.imagero.java.util.Debug;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 
 /**
  * InputStream for decoding data from base64 encoded String array
@@ -76,7 +75,7 @@ public class Base64DInputStream extends InputStream {
             return buffer[p++] & 0xFF;
         }
         catch (ArrayIndexOutOfBoundsException ex) {
-            Debug.error(p + " " + buffer.length);
+        	Logger.getLogger(getClass().getName()).warning(p + " " + buffer.length);
             throw ex;
         }
     }

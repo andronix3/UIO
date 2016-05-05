@@ -31,20 +31,21 @@
  */
 package com.imagero.uio.imageio;
 
-import com.imagero.uio.io.RandomAccessInputStream;
-import com.imagero.uio.io.BitInputStream;
-import com.imagero.uio.io.IOutils;
-import com.imagero.uio.RandomAccessInput;
-import com.imagero.uio.Transformer;
-import com.imagero.uio.Endian;
-import com.imagero.uio.bio.BufferedRandomAccessIO;
-
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.stream.IIOByteBuffer;
-import java.nio.ByteOrder;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteOrder;
 import java.util.Stack;
+
+import javax.imageio.stream.IIOByteBuffer;
+import javax.imageio.stream.ImageInputStream;
+
+import com.imagero.uio.Endian;
+import com.imagero.uio.RandomAccessInput;
+import com.imagero.uio.Transformer;
+import com.imagero.uio.bio.BufferedRandomAccessIO;
+import com.imagero.uio.io.BitInputStream;
+import com.imagero.uio.io.IOutils;
+import com.imagero.uio.io.RandomAccessInputStream;
 
 /**
  * @author Andrey Kuznetsov
@@ -262,7 +263,7 @@ public class UioImageInputStream implements ImageInputStream {
         in.seek(pos);
     }
 
-    Stack markStack = new Stack();
+    Stack<Mark> markStack = new Stack<Mark>();
 
     static class Mark {
         long position;

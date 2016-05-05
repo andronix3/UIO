@@ -33,11 +33,10 @@
 package com.imagero.uio.io;
 
 
-import com.imagero.java.util.Debug;
-
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.logging.Logger;
 
 /**
  * PackBits decoder
@@ -102,7 +101,7 @@ public class PackBitsInputStream extends FilterInputStream implements Snapable {
             }
         }
         catch(IOException ex) {
-            Debug.print(ex);
+            Logger.getLogger(getClass().getName()).warning(ex.getMessage());
         }
         return i - off;
     }

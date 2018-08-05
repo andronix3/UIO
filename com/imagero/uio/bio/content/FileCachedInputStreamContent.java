@@ -44,58 +44,68 @@ import java.io.IOException;
  * @author Andrey Kuznetsov
  */
 public class FileCachedInputStreamContent extends StreamContent {
-    InputStream in;
-    File tmp;
-    TmpRandomAccessFile tmpRaf;
+	private InputStream in;
+	private File tmp;
+	private TmpRandomAccessFile tmpRaf;
+	private boolean closed;
 
-    public FileCachedInputStreamContent(InputStream in, File tmp) throws IOException {
-	this.in = in;
-	this.tmp = tmp;
-	tmpRaf = new TmpRandomAccessFile(tmp, "rw");
-    }
-
-    public int load(long offset, int bpos, byte[] buffer) throws IOException {
-	long length = tmpRaf.length();
-	long nl = offset + buffer.length - bpos;
-	if (length < nl) {
-	    tmpRaf.seek(length);
-	    IOutils.copy(nl - length, in, tmpRaf);
+	public FileCachedInputStreamContent(InputStream in, File tmp) throws IOException {
+		this.in = in;
+		this.tmp = tmp;
+		tmpRaf = new TmpRandomAccessFile(tmp, "rw");
 	}
-	tmpRaf.seek(offset);
-	length = tmpRaf.length();
-	try {
-	    long max = Math.min(length - offset, buffer.length - bpos);
-	    int imax = (int) max;
-	    imax = imax & Integer.MAX_VALUE;
-	    tmpRaf.readFully(buffer, bpos, imax);
-	} catch (Throwable ex) {
-	    ex.printStackTrace();
+
+	public int load(long offset, int bpos, byte[] buffer) throws IOException {
+		long length = tmpRaf.length();
+		long nl = offset + buffer.length - bpos;
+		if (length < nl) {
+			tmpRaf.seek(length);
+			IOutils.copy(nl - length, in, tmpRaf);
+		}
+		tmpRaf.seek(offset);
+		length = tmpRaf.length();
+		try {
+			long max = Math.min(length - offset, buffer.length - bpos);
+			int imax = (int) max;
+			imax = imax & Integer.MAX_VALUE;
+			tmpRaf.readFully(buffer, bpos, imax);
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+		}
+		return buffer.length - bpos;
 	}
-	return buffer.length - bpos;
-    }
 
-    public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
-    }
+	public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
+	}
 
-    public long length() throws IOException {
-	return tmp.length() + in.available();
-    }
+	public long length() throws IOException {
+		return tmp.length() + in.available();
+	}
 
-    public void close() {
-	IOutils.closeStream(tmpRaf);
-    }
 
-    protected void finalize() throws Throwable {
-	super.finalize();
-	IOutils.closeStream(tmpRaf);
-	tmpRaf = null;
-    }
+	public void close() {
+		closed = true;
+		IOutils.closeStream(in);
+		IOutils.closeStream(tmpRaf);
+	}
 
-    public boolean canReload() {
-	return true;
-    }
+	protected void finalize() throws Throwable {
+		super.finalize();
+		IOutils.closeStream(tmpRaf);
+		tmpRaf = null;
+	}
 
-    public boolean writable() {
-	return false;
-    }
+	public boolean canReload() {
+		return true;
+	}
+
+	public boolean writable() {
+		return false;
+	}
+
+	@Override
+	public boolean isOpen() {
+		return !closed;
+	}
+
 }

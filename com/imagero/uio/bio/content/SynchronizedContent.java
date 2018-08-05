@@ -40,7 +40,7 @@ import java.io.IOException;
  */
 public class SynchronizedContent extends StreamContent {
 
-    StreamContent content;
+    private StreamContent content;
 
     public SynchronizedContent(StreamContent content) {
         this.content = content;
@@ -73,4 +73,9 @@ public class SynchronizedContent extends StreamContent {
     public StreamContent getContent() {
         return content;
     }
+
+	@Override
+	public boolean isOpen() {
+		return content.isOpen();
+	}
 }

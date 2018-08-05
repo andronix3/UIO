@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 
 /**
  * Compare input from RandomAccessFile and RandomAccessInput.
@@ -369,4 +370,17 @@ public class ComparingRandomAccessInput2 implements RandomAccessInput {
         Assertions.assertEquals(b0, b1); //don't compare
         return b0;
     }
+
+	@Override
+	public int read(ByteBuffer dst) throws IOException {
+		return r0.getChannel().read(dst);
+	}
+
+	@Override
+	public boolean isOpen() {
+		boolean b0 = r0.getChannel().isOpen();
+		boolean b1 = r1.isOpen();
+        Assertions.assertEquals(b0, b1);
+		return b0;
+	}
 }

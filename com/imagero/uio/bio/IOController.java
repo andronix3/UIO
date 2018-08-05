@@ -79,6 +79,10 @@ public class IOController {
 	final void setLength(long newLength) {
 		explicitLength = newLength;
 	}
+	
+	public boolean isOpen() {
+		return content.isOpen();
+	}
 
 	private Enumeration<FixedSizeByteBuffer> buffers(final boolean allowNullValues) {
 		final FixedSizeByteBuffer empty = allowNullValues ? null
@@ -174,7 +178,7 @@ public class IOController {
 	void writeTo(OutputStream out) throws IOException {
 		Enumeration<FixedSizeByteBuffer> e = buffers(false);
 		while (e.hasMoreElements()) {
-			FixedSizeByteBuffer buffer = e.nextElement();
+			UIOBuffer buffer = e.nextElement();
 			buffer.writeBuffer(out, e.hasMoreElements());
 		}
 	}
@@ -182,7 +186,7 @@ public class IOController {
 	void writeTo(DataOutput out) throws IOException {
 		Enumeration<FixedSizeByteBuffer> e = buffers(false);
 		while (e.hasMoreElements()) {
-			FixedSizeByteBuffer buffer = e.nextElement();
+			UIOBuffer buffer = e.nextElement();
 			buffer.writeBuffer(out, e.hasMoreElements());
 		}
 	}
@@ -245,7 +249,7 @@ public class IOController {
 		return bi;
 	}
 
-	public FixedSizeByteBuffer getBuffer(long pos) {
+	public UIOBuffer getBuffer(long pos) {
 		return getBuffer(getBufferIndex(pos));
 	}
 

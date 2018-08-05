@@ -51,8 +51,9 @@ import java.io.IOException;
 public class SpannedRandomAccessIOContent extends StreamContent {
     private RandomAccessIO rio;
 
-    Span[] spans;
-    long length;
+    private Span[] spans;
+    private long length;
+    private boolean closed;
 
 
     public SpannedRandomAccessIOContent(RandomAccessIO rio, Span[] spans) throws IOException {
@@ -119,6 +120,7 @@ public class SpannedRandomAccessIOContent extends StreamContent {
     }
 
     public void close() {
+    	closed = true;
         IOutils.closeStream((RandomAccessInput) rio);
     }
 
@@ -150,4 +152,9 @@ public class SpannedRandomAccessIOContent extends StreamContent {
         super.finalize();
         rio = null;
     }
+    
+	@Override
+	public boolean isOpen() {
+		return !closed;
+	}
 }

@@ -77,10 +77,7 @@ public class HTTPContent extends StreamContent {
         int count = 0;
         try {
             int len = buffer.length - bpos;
-            IOutils.readFully(in, buffer, bpos, len);
-            count = len;
-        } catch (UnexpectedEOFException ex) {
-            count = (int) ex.getCount();
+            count = IOutils.readFully(in, buffer, bpos, len);
         } finally {
             httpcon.disconnect();
         }
@@ -112,4 +109,9 @@ public class HTTPContent extends StreamContent {
     public boolean writable() {
         return false;
     }
+
+	@Override
+	public boolean isOpen() {
+		return true;
+	}
 }

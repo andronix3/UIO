@@ -148,4 +148,9 @@ public class CharArrayContent extends StreamContent {
     public boolean writable() {
         return true;
     }
+    
+	@Override
+	public boolean isOpen() {
+		return true;
+	}
 }

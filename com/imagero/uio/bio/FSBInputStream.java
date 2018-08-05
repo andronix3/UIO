@@ -9,7 +9,7 @@ import java.io.IOException;
  * @author Andrey Kuznetsov
  */
 class FSBInputStream extends InputStream {
-    FixedSizeByteBuffer buffer;
+    UIOBuffer buffer;
     BufferPosition position;
     int mark;
     long offset;
@@ -19,14 +19,14 @@ class FSBInputStream extends InputStream {
         position = new BufferPosition(buffer.buf.length);
     }
 
-    public FSBInputStream(int offset, FixedSizeByteBuffer buffer) {
+    public FSBInputStream(int offset, UIOBuffer buffer) {
         this.buffer = buffer;
         position = new BufferPosition(Integer.MAX_VALUE);
         position.pos = offset;
         this.offset = offset;
     }
 
-    public FSBInputStream(int offset, FixedSizeByteBuffer buffer, int length) {
+    public FSBInputStream(int offset, UIOBuffer buffer, int length) {
         this.buffer = buffer;
         position = new BufferPosition(length);
         position.pos = offset;

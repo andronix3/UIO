@@ -44,6 +44,4 @@ public interface Seekable {
     long length() throws IOException;
 
     void seek(long offset) throws IOException;
-
-    void close() throws IOException;
 }

@@ -42,139 +42,214 @@ import java.io.OutputStream;
  * 
  * @author Andrey Kuznetsov
  */
-public class FixedSizeByteBuffer {
+public class FixedSizeByteBuffer implements UIOBuffer {
 
-    protected byte[] buf;
-    protected int count;
+	protected byte[] buf;
+	protected int count;
 
-    boolean changed;
-    BufferIndex index;
+	boolean changed;
+	BufferIndex index;
 
-    protected FixedSizeByteBuffer(byte buf[]) {
-	this.buf = buf;
-    }
-
-    public int read(BufferPosition position) {
-	if (availableForReading(position) > 0) {
-	    int v = buf[position.pos++] & 0xFF;
-	    return v;
+	protected FixedSizeByteBuffer(byte buf[]) {
+		this.buf = buf;
 	}
-	return -1;
-    }
 
-    public long skip(long n, BufferPosition position) {
-	long p = Math.max(0, Math.min(count - position.pos, n));
-	position.pos += p;
-	return p;
-    }
-
-    public BufferPosition createPosition() {
-	return new BufferPosition(buf.length);
-    }
-
-    public int availableForReading(BufferPosition position) {
-	int min = count > position.bufferSize ? position.bufferSize : count;
-	int avail = min - position.pos;
-	return avail < 0 ? 0 : avail;
-    }
-
-    public int availableForWriting(BufferPosition position) {
-	int avail = buf.length - position.pos;
-	return avail < 0 ? 0 : avail;
-    }
-
-    public int read(byte[] dest, int offset, int length, BufferPosition position) {
-	final int available = availableForReading(position);
-	int toCopy = Math.max(0, Math.min(length, available));
-	if (toCopy > 0) {
-	    try {
-		System.arraycopy(buf, position.pos, dest, offset, toCopy);
-	    } catch (ArrayIndexOutOfBoundsException ex) {
-		ex.printStackTrace();
-	    }
-	    position.pos += toCopy;
-	    return toCopy;
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#read(com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public int read(BufferPosition position) {
+		if (availableForReading(position) > 0) {
+			int v = buf[position.pos++] & 0xFF;
+			return v;
+		}
+		return -1;
 	}
-	return -1;
-    }
 
-    /**
-     * write given byte to buffer.
-     * 
-     * @param b
-     *            int to write
-     */
-    public void write(int b, BufferPosition position) {
-	buf[position.pos++] = (byte) b;
-	count = Math.max(position.pos, count);
-    }
-
-    public int getCount() {
-	return count;
-    }
-
-    public int getPosition(BufferPosition position) {
-	return position.pos;
-    }
-
-    public void setCount(int count) {
-	this.count = Math.min(Math.max(count, 0), buf.length);
-    }
-
-    /**
-     * write buffer contents to OutputStream
-     * 
-     * @param wholeBuffer
-     *            if true then whole buffer is written, otherwise only
-     *            getCount() bytes are written
-     */
-    public void writeBuffer(OutputStream out, boolean wholeBuffer) throws IOException {
-	if (wholeBuffer) {
-	    out.write(buf);
-	} else {
-	    out.write(buf, 0, count);
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#skip(long,
+	 * com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public long skip(long n, BufferPosition position) {
+		long p = Math.max(0, Math.min(count - position.pos, n));
+		position.pos += p;
+		return p;
 	}
-    }
 
-    public void writeBuffer(DataOutput out, boolean wholeBuffer) throws IOException {
-	if (wholeBuffer) {
-	    out.write(buf);
-	} else {
-	    out.write(buf, 0, count);
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#createPosition()
+	 */
+	@Override
+	public BufferPosition createPosition() {
+		return new BufferPosition(buf.length);
 	}
-    }
 
-    /**
-     * write whole buffer contents to OutputStream (count is ignored)
-     */
-    public void writeBuffer(OutputStream out) throws IOException {
-	out.write(buf);
-    }
-
-    public void writeBuffer(DataOutput out) throws IOException {
-	out.write(buf);
-    }
-
-    public int write(byte src[], int offset, int length, BufferPosition position) {
-	int available = availableForWriting(position);
-	int toCopy = Math.max(0, Math.min(length, available));
-	if (toCopy > 0) {
-	    System.arraycopy(src, offset, buf, position.pos, toCopy);
-	    position.pos += toCopy;
-	    count = Math.max(count, position.pos);
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#availableForReading(com.imagero.uio.bio.
+	 * BufferPosition)
+	 */
+	@Override
+	public int availableForReading(BufferPosition position) {
+		int min = count > position.bufferSize ? position.bufferSize : count;
+		int avail = min - position.pos;
+		return avail < 0 ? 0 : avail;
 	}
-	return toCopy;
-    }
 
-    public RandomAccessIO create() {
-	return new FSBRandomAccessIO(this);
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#availableForWriting(com.imagero.uio.bio.
+	 * BufferPosition)
+	 */
+	@Override
+	public int availableForWriting(BufferPosition position) {
+		int avail = buf.length - position.pos;
+		return avail < 0 ? 0 : avail;
+	}
 
-    public RandomAccessIO create(int offset, int length) {
-	return new FSBRandomAccessIO(this, offset, length);
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#read(byte[], int, int,
+	 * com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public int read(byte[] dest, int offset, int length, BufferPosition position) {
+		final int available = availableForReading(position);
+		int toCopy = Math.max(0, Math.min(length, available));
+		if (toCopy > 0) {
+			try {
+				System.arraycopy(buf, position.pos, dest, offset, toCopy);
+			} catch (ArrayIndexOutOfBoundsException ex) {
+				ex.printStackTrace();
+			}
+			position.pos += toCopy;
+			return toCopy;
+		}
+		return -1;
+	}
 
-    public static FixedSizeByteBuffer createBuffer(byte buf[]) {
-	return new FixedSizeByteBuffer(buf);
-    }
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#write(int,
+	 * com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public void write(int b, BufferPosition position) {
+		buf[position.pos++] = (byte) b;
+		count = Math.max(position.pos, count);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#getCount()
+	 */
+	@Override
+	public int getCount() {
+		return count;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.imagero.uio.bio.UIOBuffer#getPosition(com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public int getPosition(BufferPosition position) {
+		return position.pos;
+	}
+
+	public void setCount(int count) {
+		this.count = Math.min(Math.max(count, 0), buf.length);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#writeBuffer(java.io.OutputStream, boolean)
+	 */
+	@Override
+	public void writeBuffer(OutputStream out, boolean wholeBuffer) throws IOException {
+		if (wholeBuffer) {
+			out.write(buf);
+		} else {
+			out.write(buf, 0, count);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#writeBuffer(java.io.DataOutput, boolean)
+	 */
+	@Override
+	public void writeBuffer(DataOutput out, boolean wholeBuffer) throws IOException {
+		if (wholeBuffer) {
+			out.write(buf);
+		} else {
+			out.write(buf, 0, count);
+		}
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#writeBuffer(java.io.OutputStream)
+	 */
+	@Override
+	public void writeBuffer(OutputStream out) throws IOException {
+		out.write(buf);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#writeBuffer(java.io.DataOutput)
+	 */
+	@Override
+	public void writeBuffer(DataOutput out) throws IOException {
+		out.write(buf);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#write(byte[], int, int,
+	 * com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public int write(byte src[], int offset, int length, BufferPosition position) {
+		int available = availableForWriting(position);
+		int toCopy = Math.max(0, Math.min(length, available));
+		if (toCopy > 0) {
+			System.arraycopy(src, offset, buf, position.pos, toCopy);
+			position.pos += toCopy;
+			count = Math.max(count, position.pos);
+		}
+		return toCopy;
+	}
+
+	public RandomAccessIO create() {
+		return new FSBRandomAccessIO(this);
+	}
+
+	public RandomAccessIO create(int offset, int length) {
+		return new FSBRandomAccessIO(this, offset, length);
+	}
+
+	public static FixedSizeByteBuffer createBuffer(byte buf[]) {
+		return new FixedSizeByteBuffer(buf);
+	}
 }

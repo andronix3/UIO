@@ -9,14 +9,14 @@ import java.io.IOException;
  * @author Andrey Kuznetsov
  */
 class FSBOutputStream extends OutputStream {
-    FixedSizeByteBuffer buffer;
+    UIOBuffer buffer;
     BufferPosition position;
 
-    public FSBOutputStream(FixedSizeByteBuffer buffer) {
+    public FSBOutputStream(UIOBuffer buffer) {
         this(0, buffer);
     }
 
-    public FSBOutputStream(int offset, FixedSizeByteBuffer buffer) {
+    public FSBOutputStream(int offset, UIOBuffer buffer) {
         this.buffer = buffer;
         position = new BufferPosition(Integer.MAX_VALUE);
         position.pos = offset;

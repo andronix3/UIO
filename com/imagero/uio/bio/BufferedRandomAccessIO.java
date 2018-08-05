@@ -35,6 +35,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 import com.imagero.uio.RandomAccessIO;
 import com.imagero.uio.RandomAccessInput;
@@ -283,5 +284,20 @@ public class BufferedRandomAccessIO extends AbstractRandomAccessIO {
 			IOCInputStream in = (IOCInputStream) child;
 			in.seek(position);
 		}
+	}
+
+	@Override
+	public int read(ByteBuffer dst) throws IOException {
+		return buffer.read(dst, bufferPosition);
+	}
+
+	@Override
+	public boolean isOpen() {
+		return true;
+	}
+
+	@Override
+	public int write(ByteBuffer src) throws IOException {
+		return buffer.write(src, bufferPosition);
 	}
 }

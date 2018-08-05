@@ -148,4 +148,9 @@ public class IntArrayContent extends StreamContent {
     public boolean writable() {
         return true;
     }
+
+	@Override
+	public boolean isOpen() {
+		return true;
+	}    
 }

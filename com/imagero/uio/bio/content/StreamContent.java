@@ -84,6 +84,8 @@ public abstract class StreamContent {
      * close stream
      */
     public abstract void close();
+    
+    public abstract boolean isOpen();
 
     /**
      * Determine if data may be reloaded or not.

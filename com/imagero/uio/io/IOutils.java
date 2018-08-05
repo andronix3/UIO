@@ -55,6 +55,7 @@ import com.imagero.uio.RandomAccessInput;
 import com.imagero.uio.RandomAccessOutput;
 import com.imagero.uio.ReadUtil;
 import com.imagero.uio.Transformer;
+import com.smartg.java.util.StackTraceUtil;
 
 /**
  * IOutils.java
@@ -530,20 +531,24 @@ public class IOutils {
 		}
 	}
 
-	public static void readFully(InputStream in, byte b[]) throws UnexpectedEOFException, IOException {
-		readFully(in, b, 0, b.length);
+	public static int readFully(InputStream in, byte b[]) {
+		return readFully(in, b, 0, b.length);
 	}
 
-	public static void readFully(InputStream in, byte b[], int off, int len)
-			throws UnexpectedEOFException, IOException {
+	public static int readFully(InputStream in, byte b[], int off, int len) {
 		int n = 0;
-		do {
-			int count = in.read(b, off + n, len - n);
-			if (count <= 0) {
-				throw new UnexpectedEOFException(n > 0 ? n : 0);
-			}
-			n += count;
-		} while (n < len);
+		try {
+			do {
+				int count = in.read(b, off + n, len - n);
+				if (count <= 0) {
+					throw new UnexpectedEOFException(n > 0 ? n : 0);
+				}
+				n += count;
+			} while (n < len);
+		} catch(IOException ex) {
+			StackTraceUtil.severe(ex);
+		}
+		return n;
 	}
 
 	/**
@@ -961,7 +966,7 @@ public class IOutils {
 	}
 
 	private static final boolean debug = false;
-	
+
 	public static String readUTF_2(byte[] data) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		DataOutputStream dout = new DataOutputStream(out);
@@ -977,7 +982,7 @@ public class IOutils {
 		} catch (Throwable ex) {
 			ex.printStackTrace();
 			readUTF = new String(data);
-			if(debug) {
+			if (debug) {
 				Logger.getAnonymousLogger().fine(readUTF);
 			}
 		}
@@ -1045,16 +1050,16 @@ public class IOutils {
 	}
 
 	/**
-	 * Read up to buffer.length bytes from stream into buffer. The remaining
-	 * bytes of the line are skipped.
+	 * Read up to buffer.length bytes from stream into buffer. The remaining bytes
+	 * of the line are skipped.
 	 * 
 	 * @param buffer
 	 * @param in
 	 *            InputStream
-	 * @return Line length is returned. The returned value may be greater or
-	 *         less then buffer length. In second case the EOL was reached
-	 *         before buffer end. To get byte count in buffer use Math.min(res,
-	 *         buffer.length), where res is returned value.
+	 * @return Line length is returned. The returned value may be greater or less
+	 *         then buffer length. In second case the EOL was reached before buffer
+	 *         end. To get byte count in buffer use Math.min(res, buffer.length),
+	 *         where res is returned value.
 	 * @throws IOException
 	 */
 	public static int readByteLine(byte[] buffer, InputStream in) throws IOException {

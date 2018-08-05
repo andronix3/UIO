@@ -94,4 +94,10 @@ public class RandomAccessIOContent extends StreamContent {
 		super.finalize();
 		rio = null;
 	}
+	
+	@Override
+	public boolean isOpen() {
+		return rio != null;
+	}
+
 }

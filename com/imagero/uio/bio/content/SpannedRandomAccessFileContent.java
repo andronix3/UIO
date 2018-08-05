@@ -41,114 +41,120 @@ import java.io.IOException;
 import java.io.EOFException;
 
 /**
- * Content with access to one or more predefined areas in File or RandomAccessFile.
- * Length can not be changed.
- * UnexpectedEOFException is thrown if we try to write outside our length.
+ * Content with access to one or more predefined areas in File or
+ * RandomAccessFile. Length can not be changed. UnexpectedEOFException is thrown
+ * if we try to write outside our length.
  *
  * Date: 05.01.2008
  *
  * @author Andrey Kuznetsov
  */
 public class SpannedRandomAccessFileContent extends StreamContent {
-    private RandomAccessFile raf;
+	private RandomAccessFile raf;
 
-    Span[] spans;
-    long length;
+	private Span[] spans;
+	private long length;
+	private boolean closed;
 
-    public SpannedRandomAccessFileContent(File f, Span[] spans) throws IOException {
-        this(f, getMode(f), spans);
-    }
+	public SpannedRandomAccessFileContent(File f, Span[] spans) throws IOException {
+		this(f, getMode(f), spans);
+	}
 
-    public SpannedRandomAccessFileContent(File f, String mode, Span[] spans) throws IOException {
-        this(new RandomAccessFileX(f, mode), spans);
+	public SpannedRandomAccessFileContent(File f, String mode, Span[] spans) throws IOException {
+		this(new RandomAccessFileX(f, mode), spans);
 
-    }
+	}
 
-    static String getMode(File f) {
-        if (!f.exists() || f.canWrite()) {
-            return "rw";
-        }
-	return "r";
-    }
+	static String getMode(File f) {
+		if (!f.exists() || f.canWrite()) {
+			return "rw";
+		}
+		return "r";
+	}
 
-    public SpannedRandomAccessFileContent(RandomAccessFile raf, Span[] spans) throws IOException {
-        this.raf = raf;
-        this.spans = spans;
-        long rafLength = raf.length();
-        for (int i = 0; i < spans.length; i++) {
-            Span span = spans[i];
-            if (span.offset > rafLength || span.offset + span.length > rafLength) {
-                throw new IOException("Illegal span: " + span.offset + " " + span.length);
-            }
-        }
-        for (int i = 0; i < spans.length; i++) {
-            length += spans[i].length;
-        }
-    }
+	public SpannedRandomAccessFileContent(RandomAccessFile raf, Span[] spans) throws IOException {
+		this.raf = raf;
+		this.spans = spans;
+		long rafLength = raf.length();
+		for (int i = 0; i < spans.length; i++) {
+			Span span = spans[i];
+			if (span.offset > rafLength || span.offset + span.length > rafLength) {
+				throw new IOException("Illegal span: " + span.offset + " " + span.length);
+			}
+		}
+		for (int i = 0; i < spans.length; i++) {
+			length += spans[i].length;
+		}
+	}
 
-    Span currentSpan;
-    long spanOffset;
+	Span currentSpan;
+	long spanOffset;
 
-    void seek(long offset) throws IOException {
-        int sp = 0;
-        while (offset > 0) {
-            Span span = spans[sp++];
-            if (offset < span.length) {
-                currentSpan = span;
-                spanOffset = offset;
-                raf.seek(span.offset + offset);
-                return;
-            }
-	    offset -= span.length;
-        }
-    }
+	void seek(long offset) throws IOException {
+		int sp = 0;
+		while (offset > 0) {
+			Span span = spans[sp++];
+			if (offset < span.length) {
+				currentSpan = span;
+				spanOffset = offset;
+				raf.seek(span.offset + offset);
+				return;
+			}
+			offset -= span.length;
+		}
+	}
 
-    public int load(long offset, int bpos, byte[] b) throws IOException {
-        seek(offset);
+	public int load(long offset, int bpos, byte[] b) throws IOException {
+		seek(offset);
 
-        long available = currentSpan.length - spanOffset;
-        int len = (int) Math.min(available, b.length - bpos);
-        if (len > 0) {
-            raf.readFully(b, bpos, len);
-            return len;
-        }
-        throw new EOFException();
-    }
+		long available = currentSpan.length - spanOffset;
+		int len = (int) Math.min(available, b.length - bpos);
+		if (len > 0) {
+			raf.readFully(b, bpos, len);
+			return len;
+		}
+		throw new EOFException();
+	}
 
-    public boolean canReload() {
-        return true;
-    }
+	public boolean canReload() {
+		return true;
+	}
 
-    public void close() {
-        IOutils.closeStream(raf);
-    }
+	public void close() {
+		IOutils.closeStream(raf);
+	}
 
-    public boolean writable() {
-        return true;
-    }
+	public boolean writable() {
+		return true;
+	}
 
-    public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
-        long len = length;
-        while (len > 0) {
-            seek(offset);
-            long available = currentSpan.length - spanOffset;
-            int w = (int) Math.min(available, len);
-            if (w == 0) {
-                throw new UnexpectedEOFException(length - len);
-            }
-            raf.write(buffer, bpos, w);
-            offset += w;
-            bpos += w;
-            len -= w;
-        }
-    }
+	public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
+		long len = length;
+		while (len > 0) {
+			seek(offset);
+			long available = currentSpan.length - spanOffset;
+			int w = (int) Math.min(available, len);
+			if (w == 0) {
+				throw new UnexpectedEOFException(length - len);
+			}
+			raf.write(buffer, bpos, w);
+			offset += w;
+			bpos += w;
+			len -= w;
+		}
+	}
 
-    public long length() throws IOException {
-        return length;
-    }
+	public long length() throws IOException {
+		return length;
+	}
 
-    protected void finalize() throws Throwable {
-        super.finalize();
-        raf = null;
-    }
+	protected void finalize() throws Throwable {
+		super.finalize();
+		raf = null;
+	}
+
+	@Override
+	public boolean isOpen() {
+		return !closed;
+	}
 }

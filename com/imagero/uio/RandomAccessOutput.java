@@ -33,13 +33,15 @@ package com.imagero.uio;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.WritableByteChannel;
+import java.io.Closeable;
 import java.io.DataOutput;
 
 
 /**
  * @author Andrey Kuznetsov
  */
-public interface RandomAccessOutput extends DataOutput, Endian, Seekable {
+public interface RandomAccessOutput extends DataOutput, Endian, Seekable, Closeable, WritableByteChannel {
 
     RandomAccessOutput createOutputChild(long offset, int byteOrder, boolean syncPointer) throws IOException;
     OutputStream createOutputStream(long offset);

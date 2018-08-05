@@ -4,6 +4,7 @@ import com.imagero.uio.RandomAccessOutput;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  *
@@ -178,4 +179,17 @@ public class ComparingRandomAccessOutput implements RandomAccessOutput {
         Assertions.assertEquals(k0, k1);
         return k0;
     }
+
+	@Override
+	public int write(ByteBuffer src) throws IOException {
+		return r0.write(src);
+	}
+
+	@Override
+	public boolean isOpen() {
+		boolean b0 = r0.isOpen();
+		boolean b1 = r1.isOpen();
+        Assertions.assertEquals(b0, b1);
+		return b0;
+	}
 }

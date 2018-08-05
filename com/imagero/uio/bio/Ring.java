@@ -16,7 +16,7 @@ class Ring <E>{
 
     @SuppressWarnings("unchecked")
     public Ring(int size) {
-        this.size = size;
+        this.size = size;        
         this.elements = (E[]) new Object[size];
     }
 

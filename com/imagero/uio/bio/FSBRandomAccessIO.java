@@ -8,6 +8,7 @@ import com.imagero.uio.RandomAccessOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * Date: 01.03.2008
@@ -16,8 +17,8 @@ import java.io.OutputStream;
  */
 class FSBRandomAccessIO extends AbstractRandomAccessIO {
 
-    FixedSizeByteBuffer buffer;
-    BufferPosition position;
+	private FixedSizeByteBuffer buffer;
+    private BufferPosition position;
 
     int offset;
     int length;
@@ -121,4 +122,19 @@ class FSBRandomAccessIO extends AbstractRandomAccessIO {
     public RandomAccessOutput createOutputChild(long offset, int byteOrder, boolean syncPointer) throws IOException {
         return createIOChild(offset, 0, byteOrder, syncPointer);
     }
+
+	@Override
+	public int read(ByteBuffer dst) throws IOException {
+		return buffer.read(dst, position);
+	}
+
+	@Override
+	public boolean isOpen() {
+		return true;
+	}
+
+	@Override
+	public int write(ByteBuffer src) throws IOException {
+		return buffer.write(src, position);
+	}
 }

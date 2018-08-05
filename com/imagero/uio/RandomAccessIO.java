@@ -32,11 +32,12 @@
 package com.imagero.uio;
 
 import java.io.IOException;
+import java.nio.channels.ByteChannel;
 
 
 /**
  * @author Andrey Kuznetsov
  */
-public interface RandomAccessIO extends RandomAccessInput, RandomAccessOutput {
+public interface RandomAccessIO extends RandomAccessInput, RandomAccessOutput, ByteChannel {
     RandomAccessIO createIOChild(long offset, long length, int byteOrder, boolean syncPointer) throws IOException;
 }

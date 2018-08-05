@@ -16,7 +16,7 @@ import com.imagero.uio.io.IOutils;
  */
 public class BlobContent extends StreamContent {
 
-	Blob blob;
+	private Blob blob;
 
 	public BlobContent(Blob blob) {
 		this.blob = blob;
@@ -58,5 +58,10 @@ public class BlobContent extends StreamContent {
 
 	public boolean writable() {
 		return false;
+	}
+
+	@Override
+	public boolean isOpen() {
+		return true;
 	}
 }

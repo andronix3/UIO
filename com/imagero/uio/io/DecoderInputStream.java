@@ -16,112 +16,117 @@ import java.io.IOException;
  * @author Andrey Kuznetsov
  */
 public abstract class DecoderInputStream extends FilterInputStream {
-    private byte [] buffer;
-    private ByteArrayInputStreamX bais;
-    protected final ByteArrayOutputStreamExt out;
-    protected boolean checkDrain = false;
-    
-    boolean finished;
+	private byte[] buffer;
+	private ByteArrayInputStreamX bais;
+	protected final ByteArrayOutputStreamExt out;
+	protected boolean checkDrain = false;
 
-    public DecoderInputStream(InputStream in) {
-        this(in, 2048);
-    }
+	boolean finished;
 
-    public DecoderInputStream(InputStream in, int bufferSize) {
-        super(in);
-        buffer = new byte[bufferSize];
-        bais = new ByteArrayInputStreamX(buffer);
-        out = create();
-    }
-
-    public final int read() throws IOException {
-	if(finished) {
-	    return -1;
+	public DecoderInputStream(InputStream in) {
+		this(in, 2048);
 	}
-        if(bais.available() <= 0) {
-            decode0();
-        }
-        return bais.read();
-    }
 
-    public int read(byte b[]) throws IOException {
-	if(finished) {
-	    return -1;
+	public DecoderInputStream(InputStream in, int bufferSize) {
+		super(in);
+		buffer = new byte[bufferSize];
+		bais = new ByteArrayInputStreamX(buffer);
+		out = create();
 	}
-        return read(b, 0, b.length);
-    }
 
-    public int read(byte b[], int off, int len) throws IOException {
-	if(finished) {
-	    return -1;
+	public final int read() throws IOException {
+		if (finished) {
+			return -1;
+		}
+		if (bais.available() <= 0) {
+			decode0();
+		}
+		return bais.read();
 	}
-        if(bais.available() <= 0) {
-            decode0();
-        }
-        return bais.read(b, off, len);
-    }
 
-    private void decode0() throws IOException {
-        finished = decode();
-        if(checkDrain && (!out.drained || bais.available() == 0)) {
-            bufferFull();
-        }
-    }
-    protected abstract boolean decode() throws IOException;
+	public int read(byte b[]) throws IOException {
+		if (finished) {
+			return -1;
+		}
+		return read(b, 0, b.length);
+	}
 
-    protected ByteArrayOutputStreamExt create() {
-        return new ByteArrayOutputStreamExt(buffer.length, new IActionListener() {
-            public void actionPerformed(IActionEvent e) {
-                bufferFull();
-            }
-        });
-    }
+	public int read(byte b[], int off, int len) throws IOException {
+		if (finished) {
+			return -1;
+		}
+		if (bais.available() <= 0) {
+			decode0();
+		}
+		return bais.read(b, off, len);
+	}
 
-    /**
-     * implements default action (drain) when buffer is full
-     */
-    protected void bufferFull() {
-        beforeDrain();
-        drain();
-        afterDrain();
-    }
+	private void decode0() throws IOException {
+		finished = decode();
+		// if(/*checkDrain &&*/ (!out.drained || bais.available() == 0)) {
+		if (bais.available() == 0) {
+//			if (!out.isDrained()) {
+				bufferFull();
+			}
+//		}
+	}
 
-    /**
-     * can be used to set some variables just before buffer draining
-     */
-    protected void beforeDrain(){};
+	protected abstract boolean decode() throws IOException;
 
-    /**
-     * can be used to set some variables just after buffer draining
-     */
-    protected void afterDrain() {};
+	protected ByteArrayOutputStreamExt create() {
+		return new ByteArrayOutputStreamExt(buffer.length, new IActionListener() {
+			public void actionPerformed(IActionEvent e) {
+				bufferFull();
+			}
+		});
+	}
 
-    /**
-     * drain buffer and reinit input
-     */
-    protected void drain() {
-        int length = out.drain(buffer);
-        bais.setPos(0);
-        bais.setLength(length);
-    }
+	/**
+	 * implements default action (drain) when buffer is full
+	 */
+	protected void bufferFull() {
+		beforeDrain();
+		drain();
+		afterDrain();
+	}
 
-    /**
-     * We need direct access to pos and count variables of ByteArrayInputStream.
-     * One wise man (Arthur van Hoff) made them protected, not private!
-     * Thanks Arthur!
-     */
-    private static class ByteArrayInputStreamX extends ByteArrayInputStream {
-        public ByteArrayInputStreamX(byte [] buffer) {
-            super(buffer);
-            count = 0;
-        }
+	/**
+	 * can be used to set some variables just before buffer draining
+	 */
+	protected void beforeDrain() {
+	};
 
-        public void setLength(int length) {
-            count = length;
-        }
+	/**
+	 * can be used to set some variables just after buffer draining
+	 */
+	protected void afterDrain() {
+	};
 
-        public void setPos(int pos) {
-            this.pos = pos;
-        }
-    }
+	/**
+	 * drain buffer and reinit input
+	 */
+	protected void drain() {
+		int length = out.drain(buffer);
+		bais.setPos(0);
+		bais.setLength(length);
+	}
+
+	/**
+	 * We need direct access to pos and count variables of ByteArrayInputStream. One
+	 * wise man (Arthur van Hoff) made them protected, not private! Thanks Arthur!
+	 */
+	private static class ByteArrayInputStreamX extends ByteArrayInputStream {
+		public ByteArrayInputStreamX(byte[] buffer) {
+			super(buffer);
+			count = 0;
+		}
+
+		public void setLength(int length) {
+			count = length;
+		}
+
+		public void setPos(int pos) {
+			this.pos = pos;
+		}
+	}
 }

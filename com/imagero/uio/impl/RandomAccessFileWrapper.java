@@ -45,6 +45,7 @@ import com.imagero.uio.bio.content.RandomAccessFileContent;
 import com.imagero.uio.io.IOutils;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 /**
  * Wrap RandomAccessFile in RandomAccessIO<br>
@@ -58,9 +59,9 @@ import java.io.*;
  */
 public class RandomAccessFileWrapper extends AbstractRandomAccessIO {
 
-    RandomAccessFile in;
+	private RandomAccessFile in;
 
-    IOController controller;
+    private IOController controller;
 
     long offset;
     Long length;
@@ -251,4 +252,19 @@ public class RandomAccessFileWrapper extends AbstractRandomAccessIO {
         }
         return new IOCOutputStream(controller, offset);
     }
+
+	@Override
+	public int read(ByteBuffer dst) throws IOException {
+		return in.getChannel().read(dst);
+	}
+
+	@Override
+	public boolean isOpen() {
+		return controller.isOpen();
+	}
+
+	@Override
+	public int write(ByteBuffer src) throws IOException {
+		return in.getChannel().write(src);
+	}
 }

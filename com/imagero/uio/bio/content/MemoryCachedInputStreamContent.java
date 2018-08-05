@@ -31,13 +31,12 @@
  */
 package com.imagero.uio.bio.content;
 
-import com.imagero.uio.io.IOutils;
-import com.imagero.uio.io.UnexpectedEOFException;
-
-import java.io.InputStream;
-import java.io.IOException;
 import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Hashtable;
+
+import com.imagero.uio.io.IOutils;
 
 /**
  * Date: 05.01.2008
@@ -45,255 +44,245 @@ import java.util.Hashtable;
  * @author Andrey Kuznetsov
  */
 public class MemoryCachedInputStreamContent extends StreamContent {
-    InputStream in;
-    int chunkSize;
-    boolean finished;
+	InputStream in;
+	int chunkSize;
+	boolean finished;
 
-    int overflow = 5;
+	int overflow = 5;
 
-    Hashtable<Long, Chunk> ht = new Hashtable<Long, Chunk>();
+	Hashtable<Long, Chunk> ht = new Hashtable<Long, Chunk>();
 
-    int lastChunkSize;
+	int lastChunkSize;
 
-    public MemoryCachedInputStreamContent(InputStream in, int chunkSize) {
-	this.in = in;
-	this.chunkSize = chunkSize;
-    }
-
-    public int load(long offset, int destOffset, byte[] dest) throws IOException {
-	long index = offset / chunkSize;
-	if (finished && index >= readCount) {
-	    throw new EOFException();
+	public MemoryCachedInputStreamContent(InputStream in, int chunkSize) {
+		this.in = in;
+		this.chunkSize = chunkSize;
 	}
-	if (!finished) {
-	    try {
-		for (long i = readCount; i <= index; i++) {
-		    byte[] b = new byte[chunkSize];
-		    Chunk chunk = addChunk(b, i); // first add then read
-		    int length = b.length;
-		    lastChunkSize = chunkSize;
-		    try {
-			IOutils.readFully(in, b);
-		    } catch (UnexpectedEOFException ex) {
-			length = (int) ex.getCount();
-		    }
-		    if (chunk.src.length != length) {
-			if (length > 0) {
-			    b = new byte[length];
-			    System.arraycopy(chunk.src, 0, b, 0, length);
-			    chunk.src = b;
-			    lastChunkSize = length;
-			} else {
-			    ht.remove(new Long(i));
+
+	public int load(long offset, int destOffset, byte[] dest) throws IOException {
+		long index = offset / chunkSize;
+		if (finished && index >= readCount) {
+			throw new EOFException();
+		}
+		if (!finished) {
+			for (long i = readCount; i <= index; i++) {
+				byte[] b = new byte[chunkSize];
+				Chunk chunk = addChunk(b, i); // first add then read
+				int length = b.length;
+				lastChunkSize = chunkSize;
+				length = IOutils.readFully(in, b);
+				if (chunk.src.length != length) {
+					if (length > 0) {
+						b = new byte[length];
+						System.arraycopy(chunk.src, 0, b, 0, length);
+						chunk.src = b;
+						lastChunkSize = length;
+					} else {
+						ht.remove(new Long(i));
+					}
+					finished = true;
+					break;
+				}
 			}
-			finished = true;
-			break;
-		    }
 		}
-	    } catch (IOException ex) {
-		finished = true;
-	    }
-	}
-	if (index <= readCount) {
-	    return copyData(dest, destOffset, offset);
-	}
-	return 0;
-    }
-
-    protected void prepare() {
-	try {
-	    for (long i = readCount; !finished; i++) {
-		byte[] b = new byte[chunkSize];
-		Chunk chunk = addChunk(b, i); // first add then read
-		int length = b.length;
-		lastChunkSize = chunkSize;
-		try {
-		    IOutils.readFully(in, b);
-		} catch (UnexpectedEOFException ex) {
-		    length = (int) ex.getCount();
+		if (index <= readCount) {
+			return copyData(dest, destOffset, offset);
 		}
-		if (chunk.src.length != length) {
-		    if (length > 0) {
-			b = new byte[length];
-			System.arraycopy(chunk.src, 0, b, 0, length);
-			chunk.src = b;
-			lastChunkSize = length;
-		    } else {
-			ht.remove(new Long(i));
-		    }
-		    finished = true;
-		    break;
+		return 0;
+	}
+
+	protected void prepare() {
+		for (long i = readCount; !finished; i++) {
+			byte[] b = new byte[chunkSize];
+			Chunk chunk = addChunk(b, i); // first add then read
+			int length = b.length;
+			lastChunkSize = chunkSize;
+			length = IOutils.readFully(in, b);
+			if (chunk.src.length != length) {
+				if (length > 0) {
+					b = new byte[length];
+					System.arraycopy(chunk.src, 0, b, 0, length);
+					chunk.src = b;
+					lastChunkSize = length;
+				} else {
+					ht.remove(new Long(i));
+				}
+				finished = true;
+				break;
+			}
 		}
-	    }
-	} catch (IOException ex) {
-	    finished = true;
-	}
-    }
-
-    private int copyData(byte[] dest, int destOffset, long streamOffset) {
-	long index = streamOffset / chunkSize;
-	Chunk chunk = ht.get(new Long(index));
-	if (chunk != null) {
-	    return chunk.copyInterval(dest, destOffset, streamOffset);
-	}
-	return 0;
-    }
-
-    public void close() {
-    }
-
-    long readCount;
-
-    private Chunk addChunk(byte[] buf, long index) {
-	long start = index * chunkSize;
-	Chunk helper = new Chunk(buf, index, start);
-	readCount++;
-	ht.put(new Long(index), helper);
-	return helper;
-    }
-
-    class Chunk {
-	byte[] src;
-	long index;
-
-	long start;
-
-	private Chunk parent;
-
-	private Chunk left;
-	private Chunk right;
-
-	public Chunk(byte[] buf, long index, long start) {
-	    this.src = buf;
-	    this.index = index;
-	    this.start = start;
 	}
 
-	/**
-	 * 
-	 * @param dest
-	 *            destination array
-	 * @param destOffset
-	 *            start offset in destination array
-	 * @param absOffset
-	 *            absolute offset in stream
-	 * @return how much bytes was copied
-	 */
-	int copyInterval(byte[] dest, int destOffset, long absOffset) {
-	    if (src != null) {
-		if ((start > absOffset) || (absOffset > start + src.length)) {
-		    throw new IndexOutOfBoundsException("Given offset is out of chunk bounds");
+	private int copyData(byte[] dest, int destOffset, long streamOffset) {
+		long index = streamOffset / chunkSize;
+		Chunk chunk = ht.get(new Long(index));
+		if (chunk != null) {
+			return chunk.copyInterval(dest, destOffset, streamOffset);
 		}
-		if (destOffset < 0 || destOffset > dest.length) {
-		    throw new IndexOutOfBoundsException("Illegal destination offset: " + destOffset);
+		return 0;
+	}
+
+	public void close() {
+	}
+
+	long readCount;
+
+	private Chunk addChunk(byte[] buf, long index) {
+		long start = index * chunkSize;
+		Chunk helper = new Chunk(buf, index, start);
+		readCount++;
+		ht.put(new Long(index), helper);
+		return helper;
+	}
+
+	class Chunk {
+		byte[] src;
+		long index;
+
+		long start;
+
+		private Chunk parent;
+
+		private Chunk left;
+		private Chunk right;
+
+		public Chunk(byte[] buf, long index, long start) {
+			this.src = buf;
+			this.index = index;
+			this.start = start;
 		}
-		int srcOffset = (int) (absOffset - start);
-		int length = Math.min(dest.length - destOffset, src.length - srcOffset);
-		System.arraycopy(src, srcOffset, dest, destOffset, length);
-		if (srcOffset == 0 && length == src.length) {
-		    free();
-		} else {
-		    if (srcOffset == 0) {
-			// right part leftover
-			byte[] buf = new byte[src.length - length];
-			System.arraycopy(src, length, buf, 0, buf.length);
-			src = buf;
-		    } else if (srcOffset + length == src.length) {
-			// left part leftover
-			byte[] buf = new byte[src.length - length];
-			System.arraycopy(src, 0, buf, 0, buf.length);
-			src = buf;
-		    } else {
-			byte[] leftBuf = new byte[srcOffset];
-			System.arraycopy(src, 0, leftBuf, 0, leftBuf.length);
-			left = new Chunk(leftBuf, -1, start);
-			left.parent = this;
 
-			byte[] rightBuf = new byte[src.length - (srcOffset + length)];
-			System.arraycopy(src, srcOffset + length, rightBuf, 0, rightBuf.length);
-			right = new Chunk(rightBuf, -1, start + srcOffset + length);
-			right.parent = this;
+		/**
+		 * 
+		 * @param dest
+		 *            destination array
+		 * @param destOffset
+		 *            start offset in destination array
+		 * @param absOffset
+		 *            absolute offset in stream
+		 * @return how much bytes was copied
+		 */
+		int copyInterval(byte[] dest, int destOffset, long absOffset) {
+			if (src != null) {
+				if ((start > absOffset) || (absOffset > start + src.length)) {
+					throw new IndexOutOfBoundsException("Given offset is out of chunk bounds");
+				}
+				if (destOffset < 0 || destOffset > dest.length) {
+					throw new IndexOutOfBoundsException("Illegal destination offset: " + destOffset);
+				}
+				int srcOffset = (int) (absOffset - start);
+				int length = Math.min(dest.length - destOffset, src.length - srcOffset);
+				System.arraycopy(src, srcOffset, dest, destOffset, length);
+				if (srcOffset == 0 && length == src.length) {
+					free();
+				} else {
+					if (srcOffset == 0) {
+						// right part leftover
+						byte[] buf = new byte[src.length - length];
+						System.arraycopy(src, length, buf, 0, buf.length);
+						src = buf;
+					} else if (srcOffset + length == src.length) {
+						// left part leftover
+						byte[] buf = new byte[src.length - length];
+						System.arraycopy(src, 0, buf, 0, buf.length);
+						src = buf;
+					} else {
+						byte[] leftBuf = new byte[srcOffset];
+						System.arraycopy(src, 0, leftBuf, 0, leftBuf.length);
+						left = new Chunk(leftBuf, -1, start);
+						left.parent = this;
 
-			src = null;
-		    }
+						byte[] rightBuf = new byte[src.length - (srcOffset + length)];
+						System.arraycopy(src, srcOffset + length, rightBuf, 0, rightBuf.length);
+						right = new Chunk(rightBuf, -1, start + srcOffset + length);
+						right.parent = this;
+
+						src = null;
+					}
+				}
+				return length;
+			}
+			Chunk chunk = getChild(absOffset);
+			if (chunk != null) {
+				return chunk.copyInterval(dest, destOffset, absOffset);
+			}
+			return 0;
 		}
-		return length;
-	    }
-	    Chunk chunk = getChild(absOffset);
-	    if (chunk != null) {
-		return chunk.copyInterval(dest, destOffset, absOffset);
-	    }
-	    return 0;
-	}
 
-	private Chunk getChild(long absOffset) {
-	    if (right.start <= absOffset) {
-		if (right.src != null) {
-		    return right;
+		private Chunk getChild(long absOffset) {
+			if (right.start <= absOffset) {
+				if (right.src != null) {
+					return right;
+				}
+				return right.getChild(absOffset);
+			} else if (left.start <= absOffset) {
+				if (left.src != null) {
+					return left;
+				}
+				return left.getChild(absOffset);
+			}
+			return null;
 		}
-		return right.getChild(absOffset);
-	    } else if (left.start <= absOffset) {
-		if (left.src != null) {
-		    return left;
+
+		private void free() {
+			if (parent != null) {
+				parent.removeChild(this);
+			} else {
+				ht.remove(new Long(index));
+			}
 		}
-		return left.getChild(absOffset);
-	    }
-	    return null;
-	}
 
-	private void free() {
-	    if (parent != null) {
-		parent.removeChild(this);
-	    } else {
-		ht.remove(new Long(index));
-	    }
-	}
+		private void removeChild(Chunk c) {
+			if (c == null || c.parent != this) {
+				return;
+			}
+			if (c == left) {
+				left = null;
+			} else if (c == right) {
+				right = null;
+			} else {
+				return;
+			}
 
-	private void removeChild(Chunk c) {
-	    if (c == null || c.parent != this) {
-		return;
-	    }
-	    if (c == left) {
-		left = null;
-	    } else if (c == right) {
-		right = null;
-	    } else {
-		return;
-	    }
-
-	    if (left == null && right == null) {
-		free();
-	    } else {
-		if (left != null) {
-		    connectChild(left);
-		} else if (right != null) {
-		    connectChild(right);
+			if (left == null && right == null) {
+				free();
+			} else {
+				if (left != null) {
+					connectChild(left);
+				} else if (right != null) {
+					connectChild(right);
+				}
+			}
 		}
-	    }
+
+		private void connectChild(Chunk c) {
+			src = c.src;
+			left = c.left;
+			right = c.right;
+		}
 	}
 
-	private void connectChild(Chunk c) {
-	    src = c.src;
-	    left = c.left;
-	    right = c.right;
+	public boolean canReload() {
+		return false;
 	}
-    }
 
-    public boolean canReload() {
-	return false;
-    }
-
-    public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
-    }
-
-    public long length() throws IOException {
-	if (!finished) {
-	    prepare();
+	public void save(long offset, int bpos, byte[] buffer, int length) throws IOException {
 	}
-	return (readCount - 1) * chunkSize + lastChunkSize;
-    }
 
-    public boolean writable() {
-	return false;
-    }
+	public long length() throws IOException {
+		if (!finished) {
+			prepare();
+		}
+		return (readCount - 1) * chunkSize + lastChunkSize;
+	}
+
+	public boolean writable() {
+		return false;
+	}
+
+	@Override
+	public boolean isOpen() {
+		return true;
+	}
+
 }

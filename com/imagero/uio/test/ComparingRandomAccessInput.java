@@ -4,6 +4,7 @@ import com.imagero.uio.RandomAccessInput;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 
 /**
  *
@@ -360,4 +361,19 @@ public class ComparingRandomAccessInput implements RandomAccessInput {
         Assertions.assertEquals(b0, b1);
         return b0;
     }
+
+	@Override
+	public int read(ByteBuffer dst) throws IOException {
+		return r0.read(dst);
+	}
+
+	@Override
+	public boolean isOpen() {
+		boolean b0 = r0.isOpen();
+		boolean b1 = r1.isOpen();
+		Assertions.assertEquals(b0, b1);
+		return b0;
+	}
+    
+    
 }

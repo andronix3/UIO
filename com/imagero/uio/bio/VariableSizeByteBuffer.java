@@ -35,122 +35,164 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 
 /**
  * This class can be used to read from and write to byte array.
  *
  * @author Andrey Kuznetsov
  */
-public class VariableSizeByteBuffer {
+public class VariableSizeByteBuffer implements UIOBuffer {
 
-    protected Buffer buf;
-    int count;
+	protected Buffer buf;
+	int count;
 
-    boolean changed;
+	boolean changed;
 
-    public VariableSizeByteBuffer(int size) {
-        this(new byte[size]);
-    }
+	public VariableSizeByteBuffer(int size) {
+		this(new byte[size]);
+	}
 
-    public VariableSizeByteBuffer(byte buf[]) {
-        this(new Buffer(buf));
-    }
+	public VariableSizeByteBuffer(byte buf[]) {
+		this(new Buffer(buf));
+	}
 
-    VariableSizeByteBuffer(Buffer buf) {
-        this.buf = buf;
-        count = buf.buffer.length;
-    }
+	VariableSizeByteBuffer(Buffer buf) {
+		this.buf = buf;
+		count = buf.buffer.length;
+	}
 
-    public VariableSizeByteBuffer create() {
-        return new VariableSizeByteBuffer(buf);
-    }
+	public VariableSizeByteBuffer create() {
+		return new VariableSizeByteBuffer(buf);
+	}
 
-    public void seek(int pos, BufferPosition position) {
-        position.pos = pos;
-    }
+	public void seek(int pos, BufferPosition position) {
+		position.pos = pos;
+	}
 
-    public int read(BufferPosition position) {
-        if (position.pos >= count) {
-            return -1;
-        }
-        return buf.buffer[position.pos++] & 0xFF;
-    }
+	public int read(BufferPosition position) {
+		if (position.pos >= count) {
+			return -1;
+		}
+		return buf.buffer[position.pos++] & 0xFF;
+	}
 
-    public long skip(long n, BufferPosition position) {
-        long p = Math.max(0L, Math.min(n, Integer.MAX_VALUE));
-        position.pos += p;
-        return p;
-    }
+	public long skip(long n, BufferPosition position) {
+		long p = Math.max(0L, Math.min(n, Integer.MAX_VALUE));
+		position.pos += p;
+		return p;
+	}
 
-    /**
-     * get amount of bytes which may be written without changing buffer size
-     */
-    public int availableForWriting(BufferPosition position) {
-        return buf.buffer.length - position.pos;
-    }
+	/**
+	 * get amount of bytes which may be written without changing buffer size
+	 */
+	public int availableForWriting(BufferPosition position) {
+		return buf.buffer.length - position.pos;
+	}
 
-    public int availableForReading(BufferPosition position) {
-        return Math.max(0, Math.min(count, position.bufferSize) - position.pos);
-    }
+	public int availableForReading(BufferPosition position) {
+		return Math.max(0, Math.min(count, position.bufferSize) - position.pos);
+	}
 
-    public int read(byte[] dest, int offset, int length, BufferPosition position) {
-        final int available = availableForReading(position);
-        int toRead = Math.max(0, Math.min(length, available));
-        if (toRead > 0) {
-            System.arraycopy(buf.buffer, position.pos, dest, offset, toRead);
-            position.pos += toRead;
-        }
-        return toRead;
-    }
+	public int read(byte[] dest, int offset, int length, BufferPosition position) {
+		final int available = availableForReading(position);
+		int toRead = Math.max(0, Math.min(length, available));
+		if (toRead > 0) {
+			System.arraycopy(buf.buffer, position.pos, dest, offset, toRead);
+			position.pos += toRead;
+		}
+		return toRead;
+	}
 
-    public int getCount() {
-        return count;
-    }
+	public int getCount() {
+		return count;
+	}
 
-    public void setCount(int count) {
-        this.count = Math.min(Math.max(count, 0), buf.buffer.length);
-    }
+	public void setCount(int count) {
+		this.count = Math.min(Math.max(count, 0), buf.buffer.length);
+	}
 
-    public void writeBuffer(OutputStream out) throws IOException {
-        out.write(buf.buffer, 0, count);
-    }
+	public void writeBuffer(OutputStream out) throws IOException {
+		out.write(buf.buffer, 0, count);
+	}
 
-    public void writeBuffer(DataOutput out) throws IOException {
-        out.write(buf.buffer, 0, count);
-    }
+	public void writeBuffer(DataOutput out) throws IOException {
+		out.write(buf.buffer, 0, count);
+	}
 
-    public void write(byte b[], int offset, int length, BufferPosition position) {
-        if (length > 0) {
-            checkSize(length, position);
-            System.arraycopy(b, offset, buf.buffer, position.pos, length);
-            position.pos += length;
-            count = Math.max(count, position.pos);
-        }
-    }
+	public int write(byte b[], int offset, int length, BufferPosition position) {
+		if (length > 0) {
+			checkSize(length, position);
+			System.arraycopy(b, offset, buf.buffer, position.pos, length);
+			position.pos += length;
+			count = Math.max(count, position.pos);
+		}
+		return length;
+	}
 
-    public void write(int b, BufferPosition position) {
-        checkSize(1, position);
-        buf.buffer[position.pos++] = (byte) b;
-        count = Math.max(count, position.pos);
-    }
+	public void write(int b, BufferPosition position) {
+		checkSize(1, position);
+		buf.buffer[position.pos++] = (byte) b;
+		count = Math.max(count, position.pos);
+	}
 
-    private synchronized void checkSize(int k, BufferPosition position) {
-        if (position.pos + k > buf.buffer.length) {
-            byte newbuf[] = new byte[Math.max(buf.buffer.length << 1, position.pos + k)];
-            System.arraycopy(buf.buffer, 0, newbuf, 0, count);
-            buf.buffer = newbuf;
-        }
-    }
+	private synchronized void checkSize(int k, BufferPosition position) {
+		if (position.pos + k > buf.buffer.length) {
+			byte newbuf[] = new byte[Math.max(buf.buffer.length << 1, position.pos + k)];
+			System.arraycopy(buf.buffer, 0, newbuf, 0, count);
+			buf.buffer = newbuf;
+		}
+	}
 
-    public InputStream getInputStream(int offset) {
-        return new VSBInputStream(offset, this);
-    }
+	public InputStream getInputStream(int offset) {
+		return new VSBInputStream(offset, this);
+	}
 
-    public InputStream getInputStream(int offset, int length) {
-        return new VSBInputStream(offset, this, length);
-    }
+	public InputStream getInputStream(int offset, int length) {
+		return new VSBInputStream(offset, this, length);
+	}
 
-    public OutputStream getOutputStream(int offset) {
-        return new VSBOutputStream(offset, this);
-    }
+	public OutputStream getOutputStream(int offset) {
+		return new VSBOutputStream(offset, this);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * com.imagero.uio.bio.UIOBuffer#getPosition(com.imagero.uio.bio.BufferPosition)
+	 */
+	@Override
+	public int getPosition(BufferPosition position) {
+		return position.pos;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see com.imagero.uio.bio.UIOBuffer#createPosition()
+	 */
+	@Override
+	public BufferPosition createPosition() {
+		return new BufferPosition(buf.buffer.length);
+	}
+
+	@Override
+	public void writeBuffer(OutputStream out, boolean wholeBuffer) throws IOException {
+		if (wholeBuffer) {
+			out.write(buf.buffer);
+		} else {
+			out.write(buf.buffer, 0, count);
+		}
+	}
+
+	@Override
+	public void writeBuffer(DataOutput out, boolean wholeBuffer) throws IOException {
+		if (wholeBuffer) {
+			out.write(buf.buffer);
+		} else {
+			out.write(buf.buffer, 0, count);
+		}
+	}
 }

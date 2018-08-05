@@ -48,6 +48,7 @@ import com.imagero.uio.io.IOutils;
 public class RandomAccessFileContent extends StreamContent {
     private RandomAccessFile raf;
     private String mode;
+    private boolean closed;
 
     public RandomAccessFileContent(File f) throws IOException {
         this(f, getMode(f));
@@ -112,6 +113,7 @@ public class RandomAccessFileContent extends StreamContent {
     }
 
     public void close() {
+    	closed = true;
         IOutils.closeStream(raf);
     }
 
@@ -137,4 +139,10 @@ public class RandomAccessFileContent extends StreamContent {
         super.finalize();
         raf = null;
     }
+    
+	@Override
+	public boolean isOpen() {
+		return !closed;
+	}
+
 }

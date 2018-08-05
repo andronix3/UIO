@@ -33,12 +33,15 @@ package com.imagero.uio;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.io.Closeable;
 import java.io.DataInput;
 
 /**
  * @author Andrey Kuznetsov
  */
-public interface RandomAccessInput extends Input, DataInput, Endian, Seekable {
+public interface RandomAccessInput extends Input, DataInput, Endian, Seekable, Closeable, ReadableByteChannel {
 
     /**
      * Create RandomAccessInput child from given offset
@@ -58,6 +61,15 @@ public interface RandomAccessInput extends Input, DataInput, Endian, Seekable {
     InputStream createInputStream(long offset);
 
     InputStream createInputStream(long offset, long length);
+    
+    default ReadableByteChannel getChannel(long offset) {
+    	return Channels.newChannel(createInputStream(offset));
+    }
+    
+    default ReadableByteChannel getChannel(long offset, long length) {
+    	return Channels.newChannel(createInputStream(offset, length));
+    }
+
 
     /**
      * get stream position of child InputStream (created with createInputStream());

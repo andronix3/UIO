@@ -6,6 +6,7 @@ import com.imagero.uio.test.ComparingRandomAccessInput;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  *
@@ -151,4 +152,9 @@ public class ComparingRandomAccessIO extends ComparingRandomAccessInput implemen
         r0.setLength(newLength);
         r1.setLength(newLength);
     }
+
+	@Override
+	public int write(ByteBuffer src) throws IOException {
+		return r0.write(src);
+	}
 }

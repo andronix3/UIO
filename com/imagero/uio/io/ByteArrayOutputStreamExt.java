@@ -44,17 +44,15 @@ import java.io.IOException;
  */
 public class ByteArrayOutputStreamExt extends ByteArrayOutputStream {
 
-    private MyEventSource eventSource = new MyEventSource(this);
     public static final String BUFFER_FULL = "buffer full";
+    private MyEventSource eventSource = new MyEventSource(this);
     IActionEvent e = new IActionEvent(eventSource, BUFFER_FULL);
     boolean hasListener;
+    private boolean drained;
+
 
     public ByteArrayOutputStreamExt() {
         this(1024);
-    }
-
-    public ByteArrayOutputStreamExt(int size) {
-        super(size);
     }
 
     public ByteArrayOutputStreamExt(IActionListener l) {
@@ -65,98 +63,15 @@ public class ByteArrayOutputStreamExt extends ByteArrayOutputStream {
         }
     }
 
+    public ByteArrayOutputStreamExt(int size) {
+        super(size);
+    }
+
     public ByteArrayOutputStreamExt(int size, IActionListener l) {
         super(size);
         if(l != null) {
             eventSource.addEventListener(l);
             hasListener = true;
-        }
-    }
-
-    public void setActionListener(IActionListener al) {
-        if(!hasListener) {
-            eventSource.addEventListener(al);
-        }
-        else {
-            throw new RuntimeException("Listener already exists");
-        }
-    }
-
-    protected void fireBufferFullEvent() {
-        drained = false;
-        eventSource.post(e);
-    }
-
-    public boolean isDrained() {
-        return drained;
-    }
-
-    /**
-     * Fill destination buffer with data which is removed from start of this buffer.
-     * @param dest destination buffer
-     * @return how much bytes was moved from this buffer into destination buffer.
-     */
-    public synchronized int drain(byte[] dest) {
-        int length = Math.min(dest.length, count);
-        if (length > 0) {
-            System.arraycopy(buf, 0, dest, 0, length);
-            int len = count - length;
-            if (len > 0) {
-                System.arraycopy(buf, length, buf, 0, len);
-            }
-            count -= length;
-        }
-        drained = true;
-        return length;
-    }
-
-    boolean drained;
-
-    public synchronized void write(int b) {
-        int newcount = count + 1;
-        if (newcount >= buf.length) {
-            fireBufferFullEvent();
-        }
-        drained = false;
-        super.write(b);
-    }
-
-    /**
-     * Writes <code>len</code> bytes from given byte array starting at offset off to this buffer.
-     * If capacity of buffer is not enough for incoming data,
-     * then, at-first, buffer filled with data,
-     * then fired "buffer is full" event,
-     * thus giving the user possibility to "drain" buffer.
-     * If buffer was drained, then rest of data is written to buffer,
-     * otherwise buffer capacity is increased before writing.
-     * @param b
-     * @param off
-     * @param len
-     */
-    public synchronized void write(byte b[], int off, int len) {
-        int max = buf.length - count;
-        if (max > len) {
-            super.write(b, off, len);
-        } else {
-            super.write(b, off, max);
-            fireBufferFullEvent();
-            write2(b, off + max, len - max);
-        }
-    }
-
-    private void write2(byte b[], int off, int len) {
-        if (!drained) {
-            super.write(b, off, len);
-        } else {
-            drained = false;
-            int max = buf.length - count;
-            if (max > len) {
-                super.write(b, off, len);
-            } else {
-                super.write(b, off, max);
-                fireBufferFullEvent();
-                write2(b, off + max, len - max);
-            }
         }
     }
 
@@ -178,8 +93,93 @@ public class ByteArrayOutputStreamExt extends ByteArrayOutputStream {
         return tmp;
     }
 
+    /**
+     * Fill destination buffer with data which is removed from start of this buffer.
+     * @param dest destination buffer
+     * @return how much bytes was moved from this buffer into destination buffer.
+     */
+    public synchronized int drain(byte[] dest) {
+        int length = Math.min(dest.length, count);
+        if (length > 0) {
+            System.arraycopy(buf, 0, dest, 0, length);
+            int len = count - length;
+            if (len > 0) {
+                System.arraycopy(buf, length, buf, 0, len);
+            }
+            count -= length;
+        }
+        drained = true;
+        return length;
+    }
+
+    public boolean isDrained() {
+        return drained;
+    }
+
+    public void setActionListener(IActionListener al) {
+        if(!hasListener) {
+            eventSource.addEventListener(al);
+        }
+        else {
+            throw new RuntimeException("Listener already exists");
+        }
+    }
+
+    /**
+     * Writes <code>len</code> bytes from given byte array starting at offset off to this buffer.
+     * If capacity of buffer is not enough for incoming data,
+     * then, at-first, buffer filled with data,
+     * then fired "buffer is full" event,
+     * thus giving the user possibility to "drain" buffer.
+     * If buffer was drained, then rest of data is written to buffer,
+     * otherwise buffer capacity is increased before writing.
+     * @param b
+     * @param off
+     * @param len
+     */
+    public synchronized void write(byte b[], int off, int len) {
+        int max = buf.length - count;
+        if (max >= len) {
+            super.write(b, off, len);
+        } else {
+            super.write(b, off, max);
+            fireBufferFullEvent();
+            write2(b, off + max, len - max);
+        }
+    }
+
+    public synchronized void write(int b) {
+        int newcount = count + 1;
+        if (newcount >= buf.length) {
+            fireBufferFullEvent();
+        }
+        drained = false;
+        super.write(b);
+    }
+
     public synchronized void writeTo(DataOutput out) throws IOException {
         out.write(buf, 0, count);
+    }
+
+    protected void fireBufferFullEvent() {
+        drained = false;
+        eventSource.post(e);
+    }
+
+    private void write2(byte b[], int off, int len) {
+        if (!drained) {
+            super.write(b, off, len);
+        } else {
+            drained = false;
+            int max = buf.length - count;
+            if (max > len) {
+                super.write(b, off, len);
+            } else {
+                super.write(b, off, max);
+                fireBufferFullEvent();
+                write2(b, off + max, len - max);
+            }
+        }
     }
 
     private static class MyEventSource extends EventSource {

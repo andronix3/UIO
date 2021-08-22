@@ -286,9 +286,9 @@ public class UIOStreamBuilder {
 	 * @return UIOStreamBuilder
 	 */
 	public UIOStreamBuilder setByteOrder(int byteOrder) {
-		switch (byteOrder) {
-		case Endian.LITTLE_ENDIAN:
-		case Endian.BIG_ENDIAN:
+		switch (ByteOrder.valueOf(byteOrder)) {
+		case LITTLE_ENDIAN:
+		case BIG_ENDIAN:
 			this.byteOrder = byteOrder;
 			return this;
 		default:

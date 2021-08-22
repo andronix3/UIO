@@ -79,10 +79,10 @@ public class UioImageInputStream implements ImageInputStream {
     }
 
     public ByteOrder getByteOrder() {
-        switch (in.getByteOrder()) {
-            case RandomAccessInput.BIG_ENDIAN:
+        switch (com.imagero.uio.ByteOrder.valueOf(in.getByteOrder())) {
+            case BIG_ENDIAN:
                 return ByteOrder.BIG_ENDIAN;
-            case RandomAccessInput.LITTLE_ENDIAN:
+            case LITTLE_ENDIAN:
                 return ByteOrder.LITTLE_ENDIAN;
             default:
                 throw new RuntimeException("Unknown byte order");

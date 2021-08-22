@@ -35,105 +35,120 @@ package com.imagero.uio.io;
 import java.io.ByteArrayOutputStream;
 
 /**
- * ByteArrayOutputStream which writes to external buffer.
- * Length of this external buffer can't be changed.
+ * ByteArrayOutputStream which writes to external buffer. Length of this
+ * external buffer can't be changed.
  *
  * @author Andrey Kuznetsov
  */
 public class ByteArrayOutputStream2 extends ByteArrayOutputStream {
-    
-    final boolean reportException;
-    
-    public ByteArrayOutputStream2(byte[] buffer) {
-        this(buffer, true);
-    }
-    
-    public ByteArrayOutputStream2(byte[] buffer, boolean reportException) {
-        super(0);
-        buf = buffer;
-        this.reportException = reportException;
-    }
 
-    /**
-     * write given byte to buffer.
-     *
-     * @param b byte to write
-     * @throws ArrayIndexOutOfBoundsException if new byte count would exceed length of buffer after this operation
-     */
-    public void write(int b) {
-        int newcount = count + 1;
-        if (newcount > buf.length) {
-            handleError(newcount);
-        }
-        buf[count] = (byte) b;
-        count = newcount;
-    }
+	final boolean reportException;
 
-    protected void handleError(int newcount) {
-	if(reportException) {
-	    throw new ArrayIndexOutOfBoundsException(newcount);
+	public ByteArrayOutputStream2(byte[] buffer) {
+		this(buffer, true);
 	}
-    }
 
-    /**
-     * combine (OR) current value with given byte using supplied mask.
-     * resulting value is (b & mask) | (currentValue & ~mask)
-     * @param b byte to combine
-     * @param mask 8 bit mask
-     * @throws ArrayIndexOutOfBoundsException
-     */
-    public void write(int b, int mask) {
-        int newcount = count + 1;
-        if (newcount > buf.length) {
-            handleError(newcount);
-        }
-        buf[count] = (byte) ((b & mask) | (buf[count] & ~mask));
-        count = newcount;
-    }
+	public ByteArrayOutputStream2(byte[] buffer, boolean reportException) {
+		super(0);
+		buf = buffer;
+		this.reportException = reportException;
+	}
 
-    /**
-     * Writes bytes from the specified byte array to buffer
-     * @param b byte array
-     * @param off start offset
-     * @param len number of bytes to write
-     * @throws ArrayIndexOutOfBoundsException if new byte count would exceed length of buffer after this operation (however the max possible byte count is written first)
-     */
-    public void write(byte b[], int off, int len) {
-        if (len == 0) {
-            return;
-        }
-        if ((off < 0) || (len < 0) || ((off + len) > b.length)) {
-            throw new IndexOutOfBoundsException();
-        }
-        int newcount = count + len;
-        if (newcount > buf.length) {
-            int max = buf.length - count;
-            System.arraycopy(b, off, buf, count, max);
-            handleError(newcount);
-            count = buf.length;
-            return;
-        }
-        System.arraycopy(b, off, buf, count, len);
-        count = newcount;
-    }
+	/**
+	 * write given byte to buffer.
+	 *
+	 * @param b
+	 *            byte to write
+	 * @throws ArrayIndexOutOfBoundsException
+	 *             if new byte count would exceed length of buffer after this
+	 *             operation
+	 */
+	public void write(int b) {
+		int newcount = count + 1;
+		if (newcount > buf.length) {
+			handleError(newcount);
+		} else {
+			buf[count] = (byte) b;
+			count = newcount;
+		}
+	}
 
-    public int getCount() {
-        return count;
-    }
+	protected void handleError(int newcount) {
+		if (reportException) {
+			throw new ArrayIndexOutOfBoundsException(newcount);
+		}
+	}
 
-    /**
-     * Skip some bytes.
-     * Negative skip is possible.
-     * @param n byte count to skip
-     * @return how much bytes were skipped
-     */
-    public int skip(int n) {
-        int p = this.count;
-        seek(p + n);
-        return this.count - p;
-    }
+	/**
+	 * combine (OR) current value with given byte using supplied mask. resulting
+	 * value is (b & mask) | (currentValue & ~mask)
+	 * 
+	 * @param b
+	 *            byte to combine
+	 * @param mask
+	 *            8 bit mask
+	 * @throws ArrayIndexOutOfBoundsException
+	 */
+	public void write(int b, int mask) {
+		int newcount = count + 1;
+		if (newcount > buf.length) {
+			handleError(newcount);
+		} else {
+			buf[count] = (byte) ((b & mask) | (buf[count] & ~mask));
+			count = newcount;
+		}
+	}
 
-    public void seek(int pos) {
-        this.count = Math.min(Math.max(pos, 0), buf.length - 1);
-    }
+	/**
+	 * Writes bytes from the specified byte array to buffer
+	 * 
+	 * @param b
+	 *            byte array
+	 * @param off
+	 *            start offset
+	 * @param len
+	 *            number of bytes to write
+	 * @throws ArrayIndexOutOfBoundsException
+	 *             if new byte count would exceed length of buffer after this
+	 *             operation (however the max possible byte count is written first)
+	 */
+	public void write(byte b[], int off, int len) {
+		if (len == 0) {
+			return;
+		}
+		if ((off < 0) || (len < 0) || ((off + len) > b.length)) {
+			throw new IndexOutOfBoundsException();
+		}
+		int newcount = count + len;
+		if (newcount > buf.length) {
+			int max = buf.length - count;
+			System.arraycopy(b, off, buf, count, max);
+			handleError(newcount);
+			count = buf.length;
+			return;
+		}
+		System.arraycopy(b, off, buf, count, len);
+		count = newcount;
+	}
+
+	public int getCount() {
+		return count;
+	}
+
+	/**
+	 * Skip some bytes. Negative skip is possible.
+	 * 
+	 * @param n
+	 *            byte count to skip
+	 * @return how much bytes were skipped
+	 */
+	public int skip(int n) {
+		int p = this.count;
+		seek(p + n);
+		return this.count - p;
+	}
+
+	public void seek(int pos) {
+		this.count = Math.min(Math.max(pos, 0), buf.length - 1);
+	}
 }

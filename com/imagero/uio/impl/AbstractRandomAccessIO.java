@@ -31,11 +31,12 @@
  */
 package com.imagero.uio.impl;
 
-import com.imagero.uio.RandomAccessIO;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
+import com.imagero.uio.Endian;
+import com.imagero.uio.RandomAccessIO;
 
 /**
  * @author Andrey Kuznetsov
@@ -59,7 +60,7 @@ public abstract class AbstractRandomAccessIO extends AbstractRandomAccessInput i
     }
 
     public final void writeShort(int v, int byteOrder) throws IOException {
-        if (byteOrder == BIG_ENDIAN) {
+        if (byteOrder == Endian.BIG_ENDIAN) {
             write((v >> 8) & 0xFF);
             write(v & 0xFF);
         } else {
@@ -73,7 +74,7 @@ public abstract class AbstractRandomAccessIO extends AbstractRandomAccessInput i
     }
 
     public final void writeChar(int v, int byteOrder) throws IOException {
-        if (byteOrder == BIG_ENDIAN) {
+        if (byteOrder == Endian.BIG_ENDIAN) {
             write((v >> 8) & 0xFF);
             write(v & 0xFF);
         } else {
@@ -87,7 +88,7 @@ public abstract class AbstractRandomAccessIO extends AbstractRandomAccessInput i
     }
 
     public final void writeInt(int v, int byteOrder) throws IOException {
-        if (byteOrder == BIG_ENDIAN) {
+        if (byteOrder == Endian.BIG_ENDIAN) {
             write((v >> 24) & 0xFF);
             write((v >> 16) & 0xFF);
             write((v >> 8) & 0xFF);
@@ -105,7 +106,7 @@ public abstract class AbstractRandomAccessIO extends AbstractRandomAccessInput i
     }
 
     public final void writeLong(long v, int byteOrder) throws IOException {
-        if (byteOrder == BIG_ENDIAN) {
+        if (byteOrder == Endian.BIG_ENDIAN) {
             write((int) ((v >> 56) & 0xFF));
             write((int) ((v >> 48) & 0xFF));
             write((int) ((v >> 40) & 0xFF));

@@ -29,7 +29,7 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- package com.imagero.uio;
+package com.imagero.uio;
 
 /**
  * Date: 01.03.2008
@@ -37,10 +37,11 @@
  * @author Andrey Kuznetsov
  */
 public interface Endian {
-    int BIG_ENDIAN = 0x4D4D;
-    int LITTLE_ENDIAN = 0x4949;
+	
+	public final int BIG_ENDIAN = ByteOrder.BIG_ENDIAN.getEndian();
+	public final int LITTLE_ENDIAN = ByteOrder.LITTLE_ENDIAN.getEndian();
 
-    int getByteOrder();
+	int getByteOrder();
 
-    void setByteOrder(int byteOrder);
+	void setByteOrder(int byteOrder);
 }
